@@ -21,6 +21,8 @@ export type User = {
   team?: string[]; // IDs of users in their team, for supervisors
   workPostId?: string;
   schedule?: IndividualSchedule;
+  breakStartTime?: string;
+  breakEndTime?: string;
 };
 
 export type TimeLogAction = 'clock_in' | 'break_start' | 'break_end' | 'clock_out';
@@ -58,8 +60,6 @@ export type WorkPost = {
   name: string;
   address: string;
   supervisorId?: string;
-  breakStartTime?: string;
-  breakEndTime?: string;
 };
 
 // Add a generic type for a WorkShift

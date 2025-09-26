@@ -49,6 +49,8 @@ let users: User[] = [
     workPostId: 'post1',
     passwordHash: 'hashed_password',
     schedule: getMockSchedule(),
+    breakStartTime: '12:00',
+    breakEndTime: '13:00',
   },
   {
     id: 'user_daniela',
@@ -105,7 +107,7 @@ let payslips: Payslip[] = [
 ];
 
 let workPosts: WorkPost[] = [
-    { id: 'post1', name: 'Sede Administrativa', address: 'Rua das Flores, 123', supervisorId: 'user_bruno', breakStartTime: '12:00', breakEndTime: '13:00' },
+    { id: 'post1', name: 'Sede Administrativa', address: 'Rua das Flores, 123', supervisorId: 'user_bruno' },
     { id: 'post2', name: 'Cliente A - Filial Centro', address: 'Av. Principal, 456', supervisorId: 'user_bruno' },
 ];
 
