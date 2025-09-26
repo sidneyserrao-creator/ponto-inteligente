@@ -15,13 +15,12 @@ interface SupervisorDashboardProps {
 
 export function SupervisorDashboard({ user, announcements, teamLogs, supervisedPosts, teamMembers }: SupervisorDashboardProps) {
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
       <div className="lg:col-span-2 space-y-6">
         <TeamTimeLogs teamLogs={teamLogs} />
-        <BreakTimeManager supervisedPosts={supervisedPosts} teamMembers={teamMembers} />
       </div>
       <div className="space-y-6">
-        <Announcements announcements={announcements} />
+        <BreakTimeManager supervisedPosts={supervisedPosts} teamMembers={teamMembers} />
       </div>
     </div>
   );
