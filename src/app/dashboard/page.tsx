@@ -39,7 +39,10 @@ export default async function DashboardPage() {
 
   return (
     <div className="space-y-6">
-      <h1 className="text-3xl font-bold text-foreground">Dashboard</h1>
+      <div className="flex justify-between items-center">
+        <h1 className="text-3xl font-bold text-foreground">Dashboard</h1>
+        <p className="text-muted-foreground">{new Date().toLocaleDateString('pt-BR', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</p>
+      </div>
       {renderDashboard(user)}
     </div>
   );

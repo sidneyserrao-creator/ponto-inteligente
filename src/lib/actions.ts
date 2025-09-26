@@ -1,12 +1,12 @@
 'use server';
 
 import { createSession, deleteSession } from '@/lib/auth';
-import { findUserByEmail, addTimeLog, addAnnouncement, deleteAnnouncement, addPayslip, updateTimeLog, findUserById } from '@/lib/data';
+import { findUserByEmail, addTimeLog, addAnnouncement, deleteAnnouncement, addPayslip, updateTimeLog, findUserById, addUser, updateUser, deleteUser, addWorkPost, addWorkShift } from '@/lib/data';
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import { z } from 'zod';
 import { validateTimeLogsWithFacialRecognition } from '@/ai/flows/validate-time-logs-with-facial-recognition';
-import type { TimeLogAction } from './types';
+import type { Role, TimeLogAction } from './types';
 
 const loginSchema = z.object({
   email: z.string().email('E-mail inválido.'),
@@ -125,4 +125,72 @@ export async function editTimeLog(logId: string, newTimestamp: string) {
         return { success: true, message: 'Registro de ponto atualizado.' };
     }
     return { error: 'Falha ao atualizar o registro.' };
+}
+
+
+// Collaborator Actions
+const collaboratorSchema = z.object({
+    id: z.string().optional(),
+    name: z.string().min(1, 'Nome é obrigatório.'),
+    email: z.string().email('E-mail inválido.'),
+    role: z.enum(['collaborator', 'supervisor', 'admin']),
+});
+
+export async function saveCollaborator(formData: FormData) {
+    const validatedFields = collaboratorSchema.safeParse(Object.fromEntries(formData.entries()));
+
+    if (!validatedFields.success) {
+        return { error: 'Dados inválidos.', fieldErrors: validatedFields.error.flatten().fieldErrors };
+    }
+
+    const { id, ...data } = validatedFields.data;
+
+    try {
+        if (id) {
+            // Update
+            updateUser(id, data);
+        } else {
+            // Create
+            addUser(data);
+        }
+        revalidatePath('/dashboard');
+        return { success: true, message: `Colaborador ${id ? 'atualizado' : 'criado'} com sucesso.` };
+    } catch (error) {
+        return { error: 'Ocorreu um erro ao salvar o colaborador.' };
+    }
+}
+
+export async function removeCollaborator(userId: string) {
+    try {
+        deleteUser(userId);
+        revalidatePath('/dashboard');
+        return { success: true, message: 'Colaborador removido com sucesso.' };
+    } catch (error) {
+        return { error: 'Ocorreu um erro ao remover o colaborador.' };
+    }
+}
+
+// WorkPost Actions
+export async function createWorkPost(formData: FormData) {
+    const name = formData.get('name') as string;
+    const address = formData.get('address') as string;
+    if (!name || !address) return { error: 'Nome e endereço são obrigatórios.' };
+
+    addWorkPost({ name, address });
+    revalidatePath('/dashboard');
+    return { success: true };
+}
+
+// WorkShift Actions
+export async function createWorkShift(formData: FormData) {
+    const name = formData.get('name') as string;
+    const startTime = formData.get('startTime') as string;
+    const endTime = formData.get('endTime') as string;
+    const days = formData.getAll('days') as string[];
+
+    if (!name || !startTime || !endTime || days.length === 0) return { error: 'Todos os campos são obrigatórios.' };
+
+    addWorkShift({ name, startTime, endTime, days });
+    revalidatePath('/dashboard');
+    return { success: true };
 }

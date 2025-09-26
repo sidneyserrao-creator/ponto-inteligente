@@ -38,3 +38,19 @@ export type Payslip = {
   fileName: string;
   uploadDate: string;
 };
+
+// Add a generic type for a WorkPost
+export type WorkPost = {
+  id: string;
+  name: string;
+  address: string;
+};
+
+// Add a generic type for a WorkShift
+export type WorkShift = {
+  id: string;
+  name: string;
+  startTime: string;
+  endTime: string;
+  days: string[];
+};

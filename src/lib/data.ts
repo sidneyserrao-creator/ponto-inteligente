@@ -1,4 +1,4 @@
-import type { User, TimeLog, Announcement, Payslip } from '@/lib/types';
+import type { User, TimeLog, Announcement, Payslip, WorkPost, WorkShift } from '@/lib/types';
 import { PlaceHolderImages } from './placeholder-images';
 
 const anaSilvaProfile = PlaceHolderImages.find(img => img.id === 'user-ana-silva-profile');
@@ -6,7 +6,7 @@ const brunoCostaProfile = PlaceHolderImages.find(img => img.id === 'user-bruno-c
 const carlosSantosProfile = PlaceHolderImages.find(img => img.id === 'user-carlos-santos-profile');
 const danielaPereiraProfile = PlaceHolderImages.find(img => img.id === 'user-daniela-pereira-profile');
 
-const users: User[] = [
+let users: User[] = [
   {
     id: 'user_ana',
     name: 'Ana Silva',
@@ -81,6 +81,16 @@ let payslips: Payslip[] = [
     }
 ];
 
+let workPosts: WorkPost[] = [
+    { id: 'post1', name: 'Sede Administrativa', address: 'Rua das Flores, 123' },
+    { id: 'post2', name: 'Cliente A - Filial Centro', address: 'Av. Principal, 456' },
+];
+
+let workShifts: WorkShift[] = [
+    { id: 'shift1', name: 'Turno Diurno', startTime: '08:00', endTime: '17:00', days: ['Seg', 'Ter', 'Qua', 'Qui', 'Sex']},
+    { id: 'shift2', name: 'Turno Noturno', startTime: '22:00', endTime: '06:00', days: ['Seg', 'Ter', 'Qua', 'Qui', 'Sex']},
+];
+
 
 // Data access functions
 export const findUserByEmail = (email: string) => users.find(u => u.email === email);
@@ -133,4 +143,52 @@ export const updateTimeLog = (logId: string, newTimestamp: string) => {
         return timeLogs[logIndex];
     }
     return null;
+};
+
+// WorkPost and WorkShift data functions
+export const getWorkPosts = () => workPosts;
+export const addWorkPost = (post: Omit<WorkPost, 'id'>) => {
+    const newPost = { ...post, id: `post_${Date.now()}`};
+    workPosts.push(newPost);
+    return newPost;
+}
+
+export const getWorkShifts = () => workShifts;
+export const addWorkShift = (shift: Omit<WorkShift, 'id'>) => {
+    const newShift = { ...shift, id: `shift_${Date.now()}`};
+    workShifts.push(newShift);
+    return newShift;
+}
+
+// Collaborator management functions
+export const addUser = (user: Omit<User, 'id' | 'profilePhotoUrl'>) => {
+    const newUser: User = {
+        ...user,
+        id: `user_${Date.now()}`,
+        // For new users, we can assign a default placeholder image
+        profilePhotoUrl: 'https://picsum.photos/seed/newuser/200/200',
+    };
+    users.push(newUser);
+    return newUser;
+}
+
+export const updateUser = (userId: string, data: Partial<Omit<User, 'id'>>) => {
+    const userIndex = users.findIndex(u => u.id === userId);
+    if (userIndex > -1) {
+        users[userIndex] = { ...users[userIndex], ...data };
+        return users[userIndex];
+    }
+    return null;
+}
+
+export const deleteUser = (userId: string) => {
+    const initialLength = users.length;
+    users = users.filter(u => u.id !== userId);
+    // Also remove user from any supervisor's team
+    users.forEach(u => {
+        if (u.role === 'supervisor' && u.team) {
+            u.team = u.team.filter(id => id !== userId);
+        }
+    });
+    return users.length < initialLength;
 }
