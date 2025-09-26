@@ -20,7 +20,8 @@ export default async function DashboardPage() {
       case 'admin':
         const allUsers = getUsers();
         const workPosts = getWorkPosts();
-        return <AdminDashboard user={user} announcements={announcements} allUsers={allUsers} workPosts={workPosts} />;
+        const allTimeLogs = getAllTimeLogs();
+        return <AdminDashboard user={user} announcements={announcements} allUsers={allUsers} workPosts={workPosts} allTimeLogs={allTimeLogs} />;
       case 'supervisor':
         const teamMemberIds = user.team || [];
         const teamMembers = getUsers().filter(u => teamMemberIds.includes(u.id));

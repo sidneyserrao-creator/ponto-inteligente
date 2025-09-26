@@ -1,9 +1,10 @@
-import type { User, Announcement, WorkPost } from '@/lib/types';
+import type { User, Announcement, WorkPost, TimeLog } from '@/lib/types';
 import { Announcements } from './announcements';
 import { AnnouncementManager } from './admin/announcement-manager';
 import { DocumentManager } from './admin/document-manager';
 import { CollaboratorManager } from './admin/collaborator-manager';
 import { WorkPostManager } from './admin/work-post-manager';
+import { TimeLogHistory } from './admin/time-log-history';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
 
@@ -12,9 +13,10 @@ interface AdminDashboardProps {
   announcements: Announcement[];
   allUsers: User[];
   workPosts: WorkPost[];
+  allTimeLogs: TimeLog[];
 }
 
-export function AdminDashboard({ user, announcements, allUsers, workPosts }: AdminDashboardProps) {
+export function AdminDashboard({ user, announcements, allUsers, workPosts, allTimeLogs }: AdminDashboardProps) {
   const collaborators = allUsers.filter(u => u.role !== 'admin');
   const supervisors = allUsers.filter(u => u.role === 'supervisor');
 
@@ -56,9 +58,7 @@ export function AdminDashboard({ user, announcements, allUsers, workPosts }: Adm
            </div>
         </TabsContent>
         <TabsContent value="history">
-            <p className="text-center text-muted-foreground p-10">
-                A funcionalidade de Histórico de Pontos será implementada aqui.
-            </p>
+            <TimeLogHistory allUsers={allUsers} allTimeLogs={allTimeLogs} />
         </TabsContent>
         <TabsContent value="signed">
             <p className="text-center text-muted-foreground p-10">
