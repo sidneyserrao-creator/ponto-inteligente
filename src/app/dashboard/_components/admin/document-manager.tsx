@@ -49,7 +49,7 @@ export function DocumentManager({ collaborators }: DocumentManagerProps) {
       setSelectedUser('');
       if(fileInputRef.current) fileInputRef.current.value = '';
     } else {
-      toast({ variant: 'destructive', title: 'Erro', description: 'Falha ao enviar o holerite.' });
+      toast({ variant: 'destructive', title: 'Erro', description: 'Falha ao enviar o contracheque.' });
     }
     setIsLoading(false);
   };
@@ -59,9 +59,9 @@ export function DocumentManager({ collaborators }: DocumentManagerProps) {
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
             <FileText className="text-primary"/>
-            Gerenciar Holerites
+            Gerenciar Contracheques
         </CardTitle>
-        <CardDescription>Envie holerites em PDF para os colaboradores.</CardDescription>
+        <CardDescription>Envie contracheques em PDF para os colaboradores.</CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
         <div>
@@ -94,7 +94,7 @@ export function DocumentManager({ collaborators }: DocumentManagerProps) {
 
         <Button onClick={handleUpload} disabled={isLoading || !selectedUser || !selectedFile} className="w-full">
             {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin"/>}
-            {isLoading ? 'Enviando...' : 'Enviar Holerite'}
+            {isLoading ? 'Enviando...' : 'Enviar Contracheque'}
         </Button>
       </CardContent>
     </GlassCard>

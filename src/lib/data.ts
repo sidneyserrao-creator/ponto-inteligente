@@ -78,7 +78,7 @@ let payslips: Payslip[] = [
     {
         id: 'payslip1',
         userId: 'user_carlos',
-        fileName: 'holerite_carlos_santos_maio_2024.pdf',
+        fileName: 'contracheque_carlos_santos_maio_2024.pdf',
         uploadDate: new Date(new Date().setMonth(new Date().getMonth() - 1)).toISOString(),
     }
 ];

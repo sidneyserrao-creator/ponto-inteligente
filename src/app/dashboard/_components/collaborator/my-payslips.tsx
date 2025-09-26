@@ -16,7 +16,7 @@ export function MyPayslips({ payslips }: MyPayslipsProps) {
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
             <FileText className="text-primary"/>
-            Meus Holerites
+            Meus Contracheques
         </CardTitle>
       </CardHeader>
       <CardContent>
@@ -40,7 +40,7 @@ export function MyPayslips({ payslips }: MyPayslipsProps) {
             ))}
             {payslips.length === 0 && (
                 <p className="text-center text-muted-foreground py-10">
-                    Nenhum holerite disponível.
+                    Nenhum contracheque disponível.
                 </p>
             )}
           </div>

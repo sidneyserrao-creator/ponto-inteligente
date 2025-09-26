@@ -113,7 +113,7 @@ export async function removeAnnouncement(id: string) {
 export async function uploadPayslip(userId: string, fileName: string) {
     addPayslip({ userId, fileName });
     revalidatePath('/dashboard');
-    return { success: true, message: `Holerite ${fileName} enviado com sucesso.` };
+    return { success: true, message: `Contracheque ${fileName} enviado com sucesso.` };
 }
 
 export async function editTimeLog(logId: string, newTimestamp: string) {
