@@ -48,11 +48,7 @@ const navItems = {
     { href: '/dashboard', label: 'Início', icon: Home },
     { href: '/dashboard/equipe', label: 'Minha Equipe', icon: Users },
   ],
-  admin: [
-    { href: '/dashboard', label: 'Início', icon: Home },
-    { href: '/dashboard/anuncios', label: 'Anúncios', icon: Megaphone },
-    { href: '/dashboard/documentos', label: 'Documentos', icon: FileText },
-  ],
+  admin: [],
 };
 
 export function DashboardNav({ user }: DashboardNavProps) {
