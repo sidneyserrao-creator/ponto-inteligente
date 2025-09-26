@@ -81,8 +81,8 @@ function CollaboratorForm({ user, workPosts, onFinished }: { user?: User | null,
                     </SelectContent>
                 </Select>
             </div>
-            <DialogFooter>
-                <DialogClose asChild><Button variant="outline">Cancelar</Button></DialogClose>
+            <DialogFooter className="flex-col-reverse sm:flex-row gap-2">
+                <DialogClose asChild><Button variant="outline" className="w-full sm:w-auto">Cancelar</Button></DialogClose>
                 <SubmitButton isEditing={!!user} />
             </DialogFooter>
         </form>
@@ -132,7 +132,7 @@ export function CollaboratorManager({ collaborators, workPosts }: { collaborator
   return (
     <GlassCard>
       <CardHeader>
-        <div className="flex flex-row items-start justify-between">
+        <div className="flex flex-col sm:flex-row items-start justify-between gap-4">
             <div>
                 <CardTitle className="flex items-center gap-2">
                     <Users className="text-primary"/>
@@ -140,7 +140,7 @@ export function CollaboratorManager({ collaborators, workPosts }: { collaborator
                 </CardTitle>
                 <CardDescription>Adicione, edite ou remova colaboradores do sistema.</CardDescription>
             </div>
-            <Button onClick={handleAdd}><PlusCircle className="mr-2 h-4 w-4" /> Adicionar</Button>
+            <Button onClick={handleAdd} className="w-full sm:w-auto"><PlusCircle className="mr-2 h-4 w-4" /> Adicionar</Button>
         </div>
         <div className="relative mt-4">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -158,25 +158,30 @@ export function CollaboratorManager({ collaborators, workPosts }: { collaborator
                 <TableHeader>
                     <TableRow>
                         <TableHead>Nome</TableHead>
-                        <TableHead>Email</TableHead>
-                        <TableHead>Função</TableHead>
-                        <TableHead>Posto</TableHead>
+                        <TableHead className="hidden md:table-cell">Email</TableHead>
+                        <TableHead className="hidden lg:table-cell">Função</TableHead>
+                        <TableHead className="hidden lg:table-cell">Posto</TableHead>
                         <TableHead className="text-right">Ações</TableHead>
                     </TableRow>
                 </TableHeader>
                 <TableBody>
                     {filteredCollaborators.map(user => (
                         <TableRow key={user.id}>
-                            <TableCell className="flex items-center gap-3">
-                                <Avatar className="h-8 w-8">
-                                    <AvatarImage src={user.profilePhotoUrl} alt={user.name} />
-                                    <AvatarFallback>{user.name.split(' ').map(n => n[0]).join('')}</AvatarFallback>
-                                </Avatar>
-                                {user.name}
+                            <TableCell>
+                                <div className="flex items-center gap-3">
+                                    <Avatar className="h-8 w-8">
+                                        <AvatarImage src={user.profilePhotoUrl} alt={user.name} />
+                                        <AvatarFallback>{user.name.split(' ').map(n => n[0]).join('')}</AvatarFallback>
+                                    </Avatar>
+                                    <div className="flex flex-col">
+                                      <span className="font-medium">{user.name}</span>
+                                      <span className="text-muted-foreground text-sm md:hidden">{user.email}</span>
+                                    </div>
+                                </div>
                             </TableCell>
-                            <TableCell>{user.email}</TableCell>
-                            <TableCell>{user.role}</TableCell>
-                            <TableCell>{getWorkPostName(user.workPostId)}</TableCell>
+                            <TableCell className="hidden md:table-cell">{user.email}</TableCell>
+                            <TableCell className="hidden lg:table-cell">{user.role}</TableCell>
+                            <TableCell className="hidden lg:table-cell">{getWorkPostName(user.workPostId)}</TableCell>
                             <TableCell className="text-right">
                                 <Button variant="ghost" size="icon" onClick={() => handleEdit(user)}><Edit className="h-4 w-4" /></Button>
                                 <Button variant="ghost" size="icon" onClick={() => handleDelete(user.id)}><Trash2 className="h-4 w-4 text-destructive" /></Button>
