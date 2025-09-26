@@ -1,3 +1,5 @@
+'use client';
+
 import { GlassCard, CardHeader, CardTitle, CardContent } from '@/components/glass-card';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Button } from '@/components/ui/button';
