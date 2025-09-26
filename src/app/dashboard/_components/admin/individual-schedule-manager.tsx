@@ -10,41 +10,42 @@ import type { User, WorkPost, IndividualSchedule } from '@/lib/types';
 import { CalendarDays, Save, User as UserIcon } from 'lucide-react';
 import { useFormStatus } from 'react-dom';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
-import { format, startOfWeek, addDays } from 'date-fns';
+import { format, startOfMonth, getDaysInMonth, addDays } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-
-const dayIds = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
+import { ScrollArea } from '@/components/ui/scroll-area';
 
 function SubmitButton() {
     const { pending } = useFormStatus();
     return (
-        <Button type="submit" disabled={pending} size="sm" className="mt-2">
+        <Button type="submit" disabled={pending} size="sm" className="mt-4">
             {pending ? 'Salvando...' : <><Save className="mr-2 h-4 w-4" /> Salvar Escala</>}
         </Button>
     );
 }
 
-function CollaboratorScheduleForm({ user, onSave }: { user: User, onSave: () => void}) {
+function CollaboratorScheduleForm({ user, onSave, currentMonth }: { user: User, onSave: () => void, currentMonth: Date }) {
     const { toast } = useToast();
     const formRef = useRef<HTMLFormElement>(null);
-    const [daysOfWeek, setDaysOfWeek] = useState<{ id: string; label: string; }[]>([]);
+    const [daysOfMonth, setDaysOfMonth] = useState<{ date: Date; dateKey: string; label: string; }[]>([]);
 
     useEffect(() => {
-        const start = startOfWeek(new Date(), { weekStartsOn: 1 }); // Week starts on Monday
-        const week = Array.from({ length: 7 }).map((_, i) => {
+        const start = startOfMonth(currentMonth);
+        const daysInMonth = getDaysInMonth(currentMonth);
+        const month = Array.from({ length: daysInMonth }).map((_, i) => {
             const day = addDays(start, i);
             return {
-                id: dayIds[i],
+                date: day,
+                dateKey: format(day, 'yyyy-MM-dd'),
                 label: format(day, 'dd EEE', { locale: ptBR }),
             };
         });
-        setDaysOfWeek(week);
-    }, []);
+        setDaysOfMonth(month);
+    }, [currentMonth]);
 
-    const handleSetFolga = (dayId: string) => {
+    const handleSetFolga = (dateKey: string) => {
         if (formRef.current) {
-            const startInput = formRef.current.elements.namedItem(`${dayId}-start`) as HTMLInputElement;
-            const endInput = formRef.current.elements.namedItem(`${dayId}-end`) as HTMLInputElement;
+            const startInput = formRef.current.elements.namedItem(`${dateKey}-start`) as HTMLInputElement;
+            const endInput = formRef.current.elements.namedItem(`${dateKey}-end`) as HTMLInputElement;
             if (startInput) startInput.value = '';
             if (endInput) endInput.value = '';
         }
@@ -72,30 +73,32 @@ function CollaboratorScheduleForm({ user, onSave }: { user: User, onSave: () => 
                 <p className="font-semibold">{user.name}</p>
             </div>
             
-            <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-x-4 gap-y-2">
-                {daysOfWeek.map(day => (
-                    <div key={day.id}>
-                        <p className="text-xs font-medium text-center mb-1 capitalize">{day.label}</p>
-                        <div className="space-y-1">
-                             <Input 
-                                type="time" 
-                                name={`${day.id}-start`} 
-                                className="h-8" 
-                                defaultValue={user.schedule?.[day.id as keyof IndividualSchedule]?.start}
-                             />
-                             <Input 
-                                type="time" 
-                                name={`${day.id}-end`} 
-                                className="h-8" 
-                                defaultValue={user.schedule?.[day.id as keyof IndividualSchedule]?.end}
-                            />
-                             <Button type="button" variant="link" size="sm" className="h-auto p-0 text-xs w-full" onClick={() => handleSetFolga(day.id)}>
-                                Folga
-                            </Button>
+            <ScrollArea className="w-full">
+                <div className="flex space-x-4 pb-4">
+                    {daysOfMonth.map(day => (
+                        <div key={day.dateKey} className="w-28 flex-shrink-0">
+                            <p className="text-xs font-medium text-center mb-1 capitalize">{day.label}</p>
+                            <div className="space-y-1">
+                                <Input 
+                                    type="time" 
+                                    name={`${day.dateKey}-start`} 
+                                    className="h-8" 
+                                    defaultValue={user.schedule?.[day.dateKey]?.start}
+                                />
+                                <Input 
+                                    type="time" 
+                                    name={`${day.dateKey}-end`} 
+                                    className="h-8" 
+                                    defaultValue={user.schedule?.[day.dateKey]?.end}
+                                />
+                                <Button type="button" variant="link" size="sm" className="h-auto p-0 text-xs w-full" onClick={() => handleSetFolga(day.dateKey)}>
+                                    Folga
+                                </Button>
+                            </div>
                         </div>
-                    </div>
-                ))}
-            </div>
+                    ))}
+                </div>
+            </ScrollArea>
             <SubmitButton />
         </form>
     )
@@ -103,6 +106,7 @@ function CollaboratorScheduleForm({ user, onSave }: { user: User, onSave: () => 
 
 export function IndividualScheduleManager({ allUsers, workPosts }: { allUsers: User[], workPosts: WorkPost[] }) {
   const [selectedPostId, setSelectedPostId] = useState<string>('');
+  const [currentMonth] = useState(new Date());
 
   const collaboratorsInPost = useMemo(() => {
     if (!selectedPostId) return [];
@@ -114,7 +118,7 @@ export function IndividualScheduleManager({ allUsers, workPosts }: { allUsers: U
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
             <CalendarDays className="text-primary"/>
-            Escalas Individuais
+            Escalas Individuais - {format(currentMonth, 'MMMM yyyy', { locale: ptBR })}
         </CardTitle>
         <CardDescription>Defina escalas de trabalho personalizadas para cada colaborador por posto de trabalho.</CardDescription>
       </CardHeader>
@@ -140,6 +144,7 @@ export function IndividualScheduleManager({ allUsers, workPosts }: { allUsers: U
                         <CollaboratorScheduleForm 
                             key={user.id} 
                             user={user}
+                            currentMonth={currentMonth}
                             onSave={() => { /* Could trigger revalidation if needed */ }}
                         />
                     ))

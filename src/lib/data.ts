@@ -1,10 +1,26 @@
 import type { User, TimeLog, Announcement, Payslip, WorkPost, WorkShift, Signature, WorkPostCreationData, WorkPostUpdateData, WorkShiftCreationData, WorkShiftUpdateData, IndividualSchedule } from '@/lib/types';
 import { PlaceHolderImages } from './placeholder-images';
+import { format, startOfWeek, addDays } from 'date-fns';
+
 
 const anaSilvaProfile = PlaceHolderImages.find(img => img.id === 'user-ana-silva-profile');
 const brunoCostaProfile = PlaceHolderImages.find(img => img.id === 'user-bruno-costa-profile');
 const carlosSantosProfile = PlaceHolderImages.find(img => img.id === 'user-carlos-santos-profile');
 const danielaPereiraProfile = PlaceHolderImages.find(img => img.id === 'user-daniela-pereira-profile');
+
+const getMockSchedule = () => {
+    const schedule: IndividualSchedule = {};
+    const today = new Date();
+    const start = startOfWeek(today, { weekStartsOn: 1 }); // Monday
+
+    for(let i=0; i<5; i++) { // Monday to Friday
+        const day = addDays(start, i);
+        const dateKey = format(day, 'yyyy-MM-dd');
+        schedule[dateKey] = { start: '08:00', end: '17:00'};
+    }
+    return schedule;
+}
+
 
 let users: User[] = [
   {
@@ -32,13 +48,7 @@ let users: User[] = [
     profilePhotoUrl: carlosSantosProfile?.imageUrl ?? '',
     workPostId: 'post1',
     passwordHash: 'hashed_password',
-    schedule: {
-      monday: { start: '08:00', end: '17:00' },
-      tuesday: { start: '08:00', end: '17:00' },
-      wednesday: { start: '08:00', end: '17:00' },
-      thursday: { start: '08:00', end: '17:00' },
-      friday: { start: '08:00', end: '16:00' },
-    }
+    schedule: getMockSchedule(),
   },
   {
     id: 'user_daniela',
@@ -310,6 +320,7 @@ export const updateUserSchedule = (userId: string, schedule: IndividualSchedule)
     if (userIndex === -1) {
         throw new Error('Usuário não encontrado.');
     }
-    users[userIndex].schedule = schedule;
+    // Merges the new schedule with the existing one
+    users[userIndex].schedule = { ...users[userIndex].schedule, ...schedule };
     return users[userIndex];
 };

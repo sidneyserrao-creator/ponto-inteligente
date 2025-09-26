@@ -5,14 +5,9 @@ export type DaySchedule = {
   end?: string;
 }
 
+// Changed from weekday keys to date keys (YYYY-MM-DD) for monthly schedule
 export type IndividualSchedule = {
-  monday?: DaySchedule;
-  tuesday?: DaySchedule;
-  wednesday?: DaySchedule;
-  thursday?: DaySchedule;
-  friday?: DaySchedule;
-  saturday?: DaySchedule;
-  sunday?: DaySchedule;
+  [date: string]: DaySchedule | undefined;
 }
 
 export type User = {

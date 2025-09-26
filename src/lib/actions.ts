@@ -7,6 +7,7 @@ import { redirect } from 'next/navigation';
 import { z } from 'zod';
 import { validateTimeLogsWithFacialRecognition } from '@/ai/flows/validate-time-logs-with-facial-recognition';
 import type { Role, TimeLogAction, IndividualSchedule } from './types';
+import { getDaysInMonth, startOfMonth, format, addDays } from 'date-fns';
 
 const loginSchema = z.object({
   email: z.string().email('E-mail inválido.'),
@@ -305,8 +306,6 @@ export async function signMyTimeSheet(monthYear: string) {
     }
 }
 
-const daysOfWeek = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
-
 export async function saveIndividualSchedule(formData: FormData) {
     const userId = formData.get('userId') as string;
 
@@ -315,16 +314,23 @@ export async function saveIndividualSchedule(formData: FormData) {
     }
 
     const schedule: IndividualSchedule = {};
-    
-    daysOfWeek.forEach(day => {
-        const start = formData.get(`${day}-start`) as string;
-        const end = formData.get(`${day}-end`) as string;
-        if (start && end) {
-            schedule[day as keyof IndividualSchedule] = { start, end };
+    const today = new Date();
+    const start = startOfMonth(today);
+    const daysInMonth = getDaysInMonth(today);
+
+    for (let i = 0; i < daysInMonth; i++) {
+        const day = addDays(start, i);
+        const dateKey = format(day, 'yyyy-MM-dd');
+
+        const startTime = formData.get(`${dateKey}-start`) as string;
+        const endTime = formData.get(`${dateKey}-end`) as string;
+
+        if (startTime && endTime) {
+            schedule[dateKey] = { start: startTime, end: endTime };
         } else {
-            schedule[day as keyof IndividualSchedule] = undefined;
+            schedule[dateKey] = undefined;
         }
-    });
+    }
 
     try {
         updateUserSchedule(userId, schedule);
