@@ -5,6 +5,7 @@ import { DocumentManager } from './admin/document-manager';
 import { CollaboratorManager } from './admin/collaborator-manager';
 import { WorkPostManager } from './admin/work-post-manager';
 import { TimeLogHistory } from './admin/time-log-history';
+import { SignedTimeSheets } from './admin/signed-time-sheets';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
 
@@ -61,9 +62,7 @@ export function AdminDashboard({ user, announcements, allUsers, workPosts, allTi
             <TimeLogHistory allUsers={allUsers} allTimeLogs={allTimeLogs} />
         </TabsContent>
         <TabsContent value="signed">
-            <p className="text-center text-muted-foreground p-10">
-                A funcionalidade de Pontos Assinados será implementada aqui.
-            </p>
+           <SignedTimeSheets collaborators={collaborators} />
         </TabsContent>
       </div>
     </Tabs>
