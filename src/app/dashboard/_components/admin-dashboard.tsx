@@ -1,5 +1,5 @@
 import type { User, Announcement, WorkPost, TimeLog, Signature, WorkShift } from '@/lib/types';
-import { Announcements } from '../announcements';
+import { Announcements } from './announcements';
 import { AnnouncementManager } from './admin/announcement-manager';
 import { DocumentManager } from './admin/document-manager';
 import { CollaboratorManager } from './admin/collaborator-manager';
