@@ -70,10 +70,11 @@ export function DashboardNav({ user }: DashboardNavProps) {
         <SidebarMenu>
           {items.map((item) => (
             <SidebarMenuItem key={item.label}>
-              <Link href={item.href} passHref legacyBehavior>
+              <Link href={item.href}>
                 <SidebarMenuButton
                   isActive={pathname === item.href}
                   tooltip={item.label}
+                  asChild={false} 
                 >
                   <item.icon />
                   <span>{item.label}</span>
