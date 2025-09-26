@@ -12,7 +12,7 @@ import { useToast } from '@/hooks/use-toast';
 import { saveCollaborator, removeCollaborator } from '@/lib/actions';
 import type { User, Role, WorkPost } from '@/lib/types';
 import { Users, PlusCircle, Edit, Trash2, Loader2, UserPlus, Search, Upload } from 'lucide-react';
-import { useFormStatus, useActionState as useFormState } from 'react-dom';
+import { useFormStatus } from 'react-dom';
 import { ScrollArea } from '@/components/ui/scroll-area';
 
 const initialState = {
@@ -63,7 +63,7 @@ function CollaboratorForm({ user, workPosts, onFinished }: { user?: User | null,
             <input type="hidden" name="id" value={user?.id || ''} />
             <div className="flex flex-col items-center gap-4">
                 <Avatar className="h-24 w-24">
-                    <AvatarImage src={previewUrl || undefined} alt={user?.name} />
+                    <AvatarImage src={previewUrl || undefined} alt={user?.name} className="object-cover" />
                     <AvatarFallback className="text-3xl">{user?.name ? user.name.split(' ').map(n => n[0]).join('') : <UserPlus/>}</AvatarFallback>
                 </Avatar>
                 <input 
@@ -207,7 +207,7 @@ export function CollaboratorManager({ collaborators, workPosts }: { collaborator
                             <TableCell>
                                 <div className="flex items-center gap-3">
                                     <Avatar className="h-8 w-8">
-                                        <AvatarImage src={user.profilePhotoUrl} alt={user.name} />
+                                        <AvatarImage src={user.profilePhotoUrl} alt={user.name} className="object-cover" />
                                         <AvatarFallback>{user.name.split(' ').map(n => n[0]).join('')}</AvatarFallback>
                                     </Avatar>
                                     <div className="flex flex-col">

@@ -13,7 +13,7 @@ function UserProfile({ user }: { user: User }) {
     return (
         <div className="flex items-center gap-4">
              <Avatar className="h-10 w-10 border">
-                <AvatarImage src={user.profilePhotoUrl} alt={user.name} />
+                <AvatarImage src={user.profilePhotoUrl} alt={user.name} className="object-cover" />
                 <AvatarFallback>{userInitials}</AvatarFallback>
             </Avatar>
             <div className="text-left">
