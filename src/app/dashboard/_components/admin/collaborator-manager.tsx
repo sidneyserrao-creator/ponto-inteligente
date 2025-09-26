@@ -1,5 +1,5 @@
 'use client';
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useActionState } from 'react';
 import { GlassCard, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/glass-card';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogClose } from '@/components/ui/dialog';
@@ -12,7 +12,7 @@ import { useToast } from '@/hooks/use-toast';
 import { saveCollaborator, removeCollaborator } from '@/lib/actions';
 import type { User, Role, WorkPost } from '@/lib/types';
 import { Users, PlusCircle, Edit, Trash2, Loader2, UserPlus, Search } from 'lucide-react';
-import { useFormState, useFormStatus } from 'react-dom';
+import { useFormStatus } from 'react-dom';
 
 const initialState = {
   message: '',
@@ -30,7 +30,7 @@ function SubmitButton({ isEditing }: { isEditing: boolean }) {
 }
 
 function CollaboratorForm({ user, workPosts, onFinished }: { user?: User | null, workPosts: WorkPost[], onFinished: () => void }) {
-    const [state, formAction] = useFormState(saveCollaborator, initialState);
+    const [state, formAction] = useActionState(saveCollaborator, initialState);
     const { toast } = useToast();
 
     const handleSubmit = async (formData: FormData) => {
