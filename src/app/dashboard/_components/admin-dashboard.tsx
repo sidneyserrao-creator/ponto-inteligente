@@ -1,4 +1,4 @@
-import type { User, Announcement, WorkPost, TimeLog } from '@/lib/types';
+import type { User, Announcement, WorkPost, TimeLog, Signature } from '@/lib/types';
 import { Announcements } from './announcements';
 import { AnnouncementManager } from './admin/announcement-manager';
 import { DocumentManager } from './admin/document-manager';
@@ -15,7 +15,7 @@ interface AdminDashboardProps {
   allUsers: User[];
   workPosts: WorkPost[];
   allTimeLogs: TimeLog[];
-  signatureStatus: Record<string, boolean>;
+  signatureStatus: Record<string, Signature | null>;
 }
 
 export function AdminDashboard({ user, announcements, allUsers, workPosts, allTimeLogs, signatureStatus }: AdminDashboardProps) {
@@ -29,7 +29,8 @@ export function AdminDashboard({ user, announcements, allUsers, workPosts, allTi
           <TabsList className="flex flex-row md:flex-col h-auto w-max md:w-full">
             <TabsTrigger value="overview" className="w-full justify-start">Visão Geral</TabsTrigger>
             <TabsTrigger value="collaborators" className="w-full justify-start">Colaboradores</TabsTrigger>
-            <TabsTrigger value="settings" className="w-full justify-start">Gestão de Postos</TabsTrigger>
+            <TabsTrigger value="work-posts" className="w-full justify-start">Gestão de Postos</TabsTrigger>
+            <TabsTrigger value="shifts" className="w-full justify-start">Escalas</TabsTrigger>
             <TabsTrigger value="history" className="w-full justify-start">Histórico de Pontos</TabsTrigger>
             <TabsTrigger value="signed" className="w-full justify-start">Pontos Assinados</TabsTrigger>
           </TabsList>
@@ -51,13 +52,18 @@ export function AdminDashboard({ user, announcements, allUsers, workPosts, allTi
         <TabsContent value="collaborators">
           <CollaboratorManager collaborators={allUsers} workPosts={workPosts} />
         </TabsContent>
-        <TabsContent value="settings">
+        <TabsContent value="work-posts">
            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               <WorkPostManager initialWorkPosts={workPosts} supervisors={supervisors} allUsers={allUsers} />
                <p className="text-center text-muted-foreground p-10">
-                  Outras opções de gestão como Escalas e Eventos aparecerão aqui.
+                  Outras opções de gestão como Eventos aparecerão aqui.
               </p>
            </div>
+        </TabsContent>
+        <TabsContent value="shifts">
+            <p className="text-center text-muted-foreground p-10">
+                A funcionalidade para gerenciar escalas e turnos de trabalho aparecerá aqui.
+            </p>
         </TabsContent>
         <TabsContent value="history">
             <TimeLogHistory allUsers={allUsers} allTimeLogs={allTimeLogs} />
