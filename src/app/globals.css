@@ -83,3 +83,29 @@
     @apply bg-background text-foreground;
   }
 }
+
+@layer utilities {
+  .scroll-container {
+    max-height: 400px; /* limite da altura */
+    overflow-y: auto;
+    scrollbar-width: thin;
+    scrollbar-color: hsl(var(--border)) transparent; /* Firefox */
+  }
+
+  /* Chrome, Edge, Safari */
+  .scroll-container::-webkit-scrollbar {
+    width: 6px;
+  }
+
+  .scroll-container::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  .scroll-container::-webkit-scrollbar-thumb {
+    background: hsl(var(--border));
+    border-radius: 3px;
+  }
+  .scroll-container::-webkit-scrollbar-thumb:hover {
+    background: hsl(var(--primary));
+  }
+}

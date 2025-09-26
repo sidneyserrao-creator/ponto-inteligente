@@ -12,7 +12,7 @@ import { useToast } from '@/hooks/use-toast';
 import { saveCollaborator, removeCollaborator } from '@/lib/actions';
 import type { User, Role, WorkPost } from '@/lib/types';
 import { Users, PlusCircle, Edit, Trash2, Loader2, UserPlus, Search, Upload } from 'lucide-react';
-import { useFormStatus } from 'react-dom';
+import { useFormStatus, useActionState as useFormState } from 'react-dom';
 import { ScrollArea } from '@/components/ui/scroll-area';
 
 const initialState = {
@@ -238,7 +238,7 @@ export function CollaboratorManager({ collaborators, workPosts }: { collaborator
                         {editingUser ? 'Altere os dados do colaborador.' : 'Preencha os dados do novo colaborador.'}
                     </DialogDescription>
                 </DialogHeader>
-                <ScrollArea className="flex-grow">
+                <ScrollArea className="flex-grow scroll-container">
                   <CollaboratorForm user={editingUser} workPosts={workPosts} onFinished={() => setIsFormOpen(false)} />
                 </ScrollArea>
             </DialogContent>
