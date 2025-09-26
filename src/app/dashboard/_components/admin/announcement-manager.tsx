@@ -57,7 +57,7 @@ export function AnnouncementManager({ initialAnnouncements }: { initialAnnouncem
           </div>
           <div className="space-y-2">
             <Label htmlFor="content">Conteúdo</Label>
-            <Textarea id="content" name="content" placeholder="Escreva o conteúdo do anúncio aqui." required />
+            <Textarea id="content" name="content" placeholder="Escreva o conteúdo do anúcio aqui." required />
           </div>
           <SubmitButton />
         </form>
