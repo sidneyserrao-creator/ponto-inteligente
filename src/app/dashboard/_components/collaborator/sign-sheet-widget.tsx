@@ -1,25 +1,42 @@
 'use client';
+import { useState } from 'react';
 import { GlassCard, CardHeader, CardTitle, CardContent, CardDescription } from '@/components/glass-card';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
-import { FileSignature, CheckCircle, Download } from 'lucide-react';
+import { signMyTimeSheet } from '@/lib/actions';
+import { FileSignature, CheckCircle, Download, Loader2 } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 
 interface SignSheetWidgetProps {
-  isSigned: boolean;
+  initialIsSigned: boolean;
 }
 
-export function SignSheetWidget({ isSigned }: SignSheetWidgetProps) {
+export function SignSheetWidget({ initialIsSigned }: SignSheetWidgetProps) {
+  const [isSigned, setIsSigned] = useState(initialIsSigned);
+  const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
-  const currentMonth = format(new Date(), "MMMM 'de' yyyy", { locale: ptBR });
+  const currentDate = new Date();
+  const currentMonth = format(currentDate, "MMMM 'de' yyyy", { locale: ptBR });
+  const currentMonthYear = format(currentDate, 'yyyy-MM');
 
-  const handleSign = () => {
-    toast({
-      title: 'Ponto Assinado!',
-      description: `Sua folha de ponto de ${currentMonth} foi assinada com sucesso.`,
-    });
-    // Here you would typically call a server action to record the signature.
+  const handleSign = async () => {
+    setIsLoading(true);
+    const result = await signMyTimeSheet(currentMonthYear);
+    if (result.success) {
+        toast({
+            title: 'Ponto Assinado!',
+            description: `Sua folha de ponto de ${currentMonth} foi assinada com sucesso.`,
+        });
+        setIsSigned(true);
+    } else {
+        toast({
+            variant: 'destructive',
+            title: 'Erro ao assinar',
+            description: result.error,
+        });
+    }
+    setIsLoading(false);
   };
 
   const handleDownload = () => {
@@ -53,9 +70,9 @@ export function SignSheetWidget({ isSigned }: SignSheetWidgetProps) {
             <p className="text-sm text-muted-foreground">
               Ao assinar, você confirma que todos os registros de entrada, saída e pausas para o mês de {currentMonth} estão corretos.
             </p>
-            <Button onClick={handleSign} className="w-full">
-              <FileSignature className="mr-2 h-4 w-4" />
-              Assinar Ponto de {currentMonth}
+            <Button onClick={handleSign} disabled={isLoading} className="w-full">
+              {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <FileSignature className="mr-2 h-4 w-4" />}
+              {isLoading ? 'Assinando...' : `Assinar Ponto de ${currentMonth}`}
             </Button>
           </>
         )}

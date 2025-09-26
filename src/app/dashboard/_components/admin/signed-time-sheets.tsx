@@ -1,5 +1,4 @@
 'use client';
-import { useState } from 'react';
 import { GlassCard, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/glass-card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -12,15 +11,10 @@ import { ptBR } from 'date-fns/locale';
 
 interface SignedTimeSheetsProps {
   collaborators: User[];
+  signatureStatus: Record<string, boolean>;
 }
 
-// Mock data for signed status
-const signedStatus: Record<string, boolean> = {
-  'user_carlos': true,
-  'user_daniela': false,
-};
-
-export function SignedTimeSheets({ collaborators }: SignedTimeSheetsProps) {
+export function SignedTimeSheets({ collaborators, signatureStatus }: SignedTimeSheetsProps) {
   const currentMonth = format(new Date(), "MMMM 'de' yyyy", { locale: ptBR });
 
   return (
@@ -46,7 +40,7 @@ export function SignedTimeSheets({ collaborators }: SignedTimeSheetsProps) {
             </TableHeader>
             <TableBody>
               {collaborators.map(user => {
-                const isSigned = signedStatus[user.id] || false;
+                const isSigned = signatureStatus[user.id] || false;
                 return (
                   <TableRow key={user.id}>
                     <TableCell>

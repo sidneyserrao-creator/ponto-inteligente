@@ -1,4 +1,4 @@
-import type { User, TimeLog, Announcement, Payslip, WorkPost, WorkShift } from '@/lib/types';
+import type { User, TimeLog, Announcement, Payslip, WorkPost, WorkShift, Signature } from '@/lib/types';
 import { PlaceHolderImages } from './placeholder-images';
 
 const anaSilvaProfile = PlaceHolderImages.find(img => img.id === 'user-ana-silva-profile');
@@ -96,6 +96,8 @@ let workShifts: WorkShift[] = [
     { id: 'shift1', name: 'Turno Diurno', startTime: '08:00', endTime: '17:00', days: ['Seg', 'Ter', 'Qua', 'Qui', 'Sex']},
     { id: 'shift2', name: 'Turno Noturno', startTime: '22:00', endTime: '06:00', days: ['Seg', 'Ter', 'Qua', 'Qui', 'Sex']},
 ];
+
+let signatures: Signature[] = [];
 
 
 // Data access functions
@@ -237,5 +239,32 @@ export const deleteUser = (userId: string) => {
         }
     });
     return users.length < initialLength;
+}
+
+// Signature functions
+export const getSignatureStatusForUser = (userId: string, monthYear: string): boolean => {
+    return signatures.some(s => s.userId === userId && s.monthYear === monthYear);
+}
+
+export const getAllSignatureStatus = (monthYear: string): Record<string, boolean> => {
+    const status: Record<string, boolean> = {};
+    users.filter(u => u.role === 'collaborator').forEach(user => {
+        status[user.id] = getSignatureStatusForUser(user.id, monthYear);
+    });
+    return status;
+}
+
+export const addSignature = (userId: string, monthYear: string): Signature => {
+    if (getSignatureStatusForUser(userId, monthYear)) {
+        throw new Error('Ponto já assinado para este mês.');
+    }
+    const newSignature: Signature = {
+        id: `sig_${Date.now()}`,
+        userId,
+        monthYear,
+        signedAt: new Date().toISOString(),
+    };
+    signatures.push(newSignature);
+    return newSignature;
 }
     

@@ -1,7 +1,7 @@
 'use server';
 
-import { createSession, deleteSession } from '@/lib/auth';
-import { findUserByEmail, addTimeLog, addAnnouncement, deleteAnnouncement, addPayslip, updateTimeLog, findUserById, addUser, updateUser, deleteUser, addWorkPost, addWorkShift, saveFile } from '@/lib/data';
+import { createSession, deleteSession, getCurrentUser } from '@/lib/auth';
+import { findUserByEmail, addTimeLog, addAnnouncement, deleteAnnouncement, addPayslip, updateTimeLog, findUserById, addUser, updateUser, deleteUser, addWorkPost, addWorkShift, saveFile, addSignature } from '@/lib/data';
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import { z } from 'zod';
@@ -226,3 +226,18 @@ export async function createWorkShift(formData: FormData) {
     return { success: true };
 }
     
+export async function signMyTimeSheet(monthYear: string) {
+    const user = await getCurrentUser();
+    if (!user) {
+        return { error: 'Usuário não autenticado.' };
+    }
+
+    try {
+        addSignature(user.id, monthYear);
+        revalidatePath('/dashboard');
+        return { success: true, message: 'Ponto assinado com sucesso.' };
+    } catch (error) {
+        const errorMessage = error instanceof Error ? error.message : 'Ocorreu um erro desconhecido.';
+        return { error: errorMessage };
+    }
+}

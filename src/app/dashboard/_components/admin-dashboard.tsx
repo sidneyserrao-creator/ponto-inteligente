@@ -15,9 +15,10 @@ interface AdminDashboardProps {
   allUsers: User[];
   workPosts: WorkPost[];
   allTimeLogs: TimeLog[];
+  signatureStatus: Record<string, boolean>;
 }
 
-export function AdminDashboard({ user, announcements, allUsers, workPosts, allTimeLogs }: AdminDashboardProps) {
+export function AdminDashboard({ user, announcements, allUsers, workPosts, allTimeLogs, signatureStatus }: AdminDashboardProps) {
   const collaborators = allUsers.filter(u => u.role !== 'admin');
   const supervisors = allUsers.filter(u => u.role === 'supervisor');
 
@@ -62,7 +63,7 @@ export function AdminDashboard({ user, announcements, allUsers, workPosts, allTi
             <TimeLogHistory allUsers={allUsers} allTimeLogs={allTimeLogs} />
         </TabsContent>
         <TabsContent value="signed">
-           <SignedTimeSheets collaborators={collaborators} />
+           <SignedTimeSheets collaborators={collaborators} signatureStatus={signatureStatus} />
         </TabsContent>
       </div>
     </Tabs>

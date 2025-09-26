@@ -4,7 +4,8 @@ import { AdminDashboard } from './_components/admin-dashboard';
 import { SupervisorDashboard } from './_components/supervisor/supervisor-dashboard';
 import { CollaboratorDashboard } from './_components/collaborator-dashboard';
 import type { User, WorkPost } from '@/lib/types';
-import { getAnnouncements, getTimeLogsForUser, getUsers, getPayslipsForUser, getAllTimeLogs, getWorkPosts } from '@/lib/data';
+import { getAnnouncements, getTimeLogsForUser, getUsers, getPayslipsForUser, getAllTimeLogs, getWorkPosts, getSignatureStatusForUser, getAllSignatureStatus } from '@/lib/data';
+import { format } from 'date-fns';
 
 export default async function DashboardPage() {
   const user = await getCurrentUser();
@@ -14,6 +15,7 @@ export default async function DashboardPage() {
   }
 
   const announcements = getAnnouncements();
+  const currentMonthYear = format(new Date(), 'yyyy-MM');
 
   const renderDashboard = (user: User) => {
     switch (user.role) {
@@ -21,7 +23,15 @@ export default async function DashboardPage() {
         const allUsers = getUsers();
         const workPosts = getWorkPosts();
         const allTimeLogs = getAllTimeLogs();
-        return <AdminDashboard user={user} announcements={announcements} allUsers={allUsers} workPosts={workPosts} allTimeLogs={allTimeLogs} />;
+        const signatureStatus = getAllSignatureStatus(currentMonthYear);
+        return <AdminDashboard 
+                  user={user} 
+                  announcements={announcements} 
+                  allUsers={allUsers} 
+                  workPosts={workPosts} 
+                  allTimeLogs={allTimeLogs}
+                  signatureStatus={signatureStatus} 
+                />;
       case 'supervisor':
         const teamMemberIds = user.team || [];
         const teamMembers = getUsers().filter(u => teamMemberIds.includes(u.id));
@@ -34,7 +44,14 @@ export default async function DashboardPage() {
       case 'collaborator':
         const timeLogs = getTimeLogsForUser(user.id);
         const payslips = getPayslipsForUser(user.id);
-        return <CollaboratorDashboard user={user} announcements={announcements} timeLogs={timeLogs} payslips={payslips} />;
+        const isSigned = getSignatureStatusForUser(user.id, currentMonthYear);
+        return <CollaboratorDashboard 
+                  user={user} 
+                  announcements={announcements} 
+                  timeLogs={timeLogs} 
+                  payslips={payslips}
+                  isSigned={isSigned}
+                />;
       default:
         return <div>Papel de usuário desconhecido.</div>;
     }

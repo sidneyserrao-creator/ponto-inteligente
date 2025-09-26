@@ -11,9 +11,10 @@ interface CollaboratorDashboardProps {
   announcements: Announcement[];
   timeLogs: TimeLog[];
   payslips: Payslip[];
+  isSigned: boolean;
 }
 
-export async function CollaboratorDashboard({ user, announcements, timeLogs, payslips }: CollaboratorDashboardProps) {
+export async function CollaboratorDashboard({ user, announcements, timeLogs, payslips, isSigned }: CollaboratorDashboardProps) {
   // This is a workaround for the server component environment where we can't easily read file to base64
   // In a real app, this might be stored in the database or a secure vault.
   const profileImage = PlaceHolderImages.find(p => p.imageUrl === user.profilePhotoUrl);
@@ -24,9 +25,6 @@ export async function CollaboratorDashboard({ user, announcements, timeLogs, pay
     user.profilePhotoDataUri = `data:${blob.type};base64,${buffer.toString('base64')}`;
   }
 
-  // Mock signed status
-  const isSigned = user.id === 'user_carlos';
-
   return (
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
       <div className="lg:col-span-2 space-y-6">
@@ -34,7 +32,7 @@ export async function CollaboratorDashboard({ user, announcements, timeLogs, pay
         <TimeLogsTable timeLogs={timeLogs} />
       </div>
       <div className="space-y-6">
-        <SignSheetWidget isSigned={isSigned} />
+        <SignSheetWidget initialIsSigned={isSigned} />
         <Announcements announcements={announcements} />
         <MyPayslips payslips={payslips} />
       </div>

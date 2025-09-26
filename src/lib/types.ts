@@ -57,4 +57,11 @@ export type WorkShift = {
   endTime: string;
   days: string[];
 };
+
+export type Signature = {
+    id: string;
+    userId: string;
+    monthYear: string; // e.g., "2024-07"
+    signedAt: string;
+}
     
