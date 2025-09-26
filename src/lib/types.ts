@@ -65,3 +65,13 @@ export type Signature = {
     signedAt: string;
 }
     
+export type DailyTimeLog = {
+    date: string;
+    logs: {
+        clock_in?: string;
+        break_start?: string;
+        break_end?: string;
+        clock_out?: string;
+    },
+    totalHours: string;
+}

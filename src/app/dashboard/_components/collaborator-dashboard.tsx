@@ -1,4 +1,4 @@
-import type { User, TimeLog, Announcement, Payslip } from '@/lib/types';
+import type { User, TimeLog, Announcement, Payslip, Signature } from '@/lib/types';
 import { Announcements } from './announcements';
 import { ClockWidget } from './collaborator/clock-widget';
 import { TimeLogsTable } from './collaborator/time-logs-table';
@@ -11,10 +11,10 @@ interface CollaboratorDashboardProps {
   announcements: Announcement[];
   timeLogs: TimeLog[];
   payslips: Payslip[];
-  isSigned: boolean;
+  signature: Signature | null;
 }
 
-export async function CollaboratorDashboard({ user, announcements, timeLogs, payslips, isSigned }: CollaboratorDashboardProps) {
+export async function CollaboratorDashboard({ user, announcements, timeLogs, payslips, signature }: CollaboratorDashboardProps) {
   // This is a workaround for the server component environment where we can't easily read file to base64
   // In a real app, this might be stored in the database or a secure vault.
   const profileImage = PlaceHolderImages.find(p => p.imageUrl === user.profilePhotoUrl);
@@ -32,7 +32,7 @@ export async function CollaboratorDashboard({ user, announcements, timeLogs, pay
         <TimeLogsTable timeLogs={timeLogs} />
       </div>
       <div className="space-y-6">
-        <SignSheetWidget initialIsSigned={isSigned} />
+        <SignSheetWidget user={user} logs={timeLogs} initialSignature={signature} />
         <Announcements announcements={announcements} />
         <MyPayslips payslips={payslips} />
       </div>

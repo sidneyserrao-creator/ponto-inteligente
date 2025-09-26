@@ -233,9 +233,9 @@ export async function signMyTimeSheet(monthYear: string) {
     }
 
     try {
-        addSignature(user.id, monthYear);
+        const signature = addSignature(user.id, monthYear);
         revalidatePath('/dashboard');
-        return { success: true, message: 'Ponto assinado com sucesso.' };
+        return { success: true, signature, message: 'Ponto assinado com sucesso.' };
     } catch (error) {
         const errorMessage = error instanceof Error ? error.message : 'Ocorreu um erro desconhecido.';
         return { error: errorMessage };

@@ -4,7 +4,7 @@ import { AdminDashboard } from './_components/admin-dashboard';
 import { SupervisorDashboard } from './_components/supervisor/supervisor-dashboard';
 import { CollaboratorDashboard } from './_components/collaborator-dashboard';
 import type { User, WorkPost } from '@/lib/types';
-import { getAnnouncements, getTimeLogsForUser, getUsers, getPayslipsForUser, getAllTimeLogs, getWorkPosts, getSignatureStatusForUser, getAllSignatureStatus } from '@/lib/data';
+import { getAnnouncements, getTimeLogsForUser, getUsers, getPayslipsForUser, getAllTimeLogs, getWorkPosts, getSignatureForUser, getAllSignatures } from '@/lib/data';
 import { format } from 'date-fns';
 
 export default async function DashboardPage() {
@@ -23,7 +23,7 @@ export default async function DashboardPage() {
         const allUsers = getUsers();
         const workPosts = getWorkPosts();
         const allTimeLogs = getAllTimeLogs();
-        const signatureStatus = getAllSignatureStatus(currentMonthYear);
+        const signatureStatus = getAllSignatures(currentMonthYear);
         return <AdminDashboard 
                   user={user} 
                   announcements={announcements} 
@@ -44,13 +44,13 @@ export default async function DashboardPage() {
       case 'collaborator':
         const timeLogs = getTimeLogsForUser(user.id);
         const payslips = getPayslipsForUser(user.id);
-        const isSigned = getSignatureStatusForUser(user.id, currentMonthYear);
+        const signature = getSignatureForUser(user.id, currentMonthYear);
         return <CollaboratorDashboard 
                   user={user} 
                   announcements={announcements} 
                   timeLogs={timeLogs} 
                   payslips={payslips}
-                  isSigned={isSigned}
+                  signature={signature}
                 />;
       default:
         return <div>Papel de usuário desconhecido.</div>;

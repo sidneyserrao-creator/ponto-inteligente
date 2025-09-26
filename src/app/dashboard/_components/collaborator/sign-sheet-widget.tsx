@@ -1,5 +1,5 @@
 'use client';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { GlassCard, CardHeader, CardTitle, CardContent, CardDescription } from '@/components/glass-card';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
@@ -7,28 +7,38 @@ import { signMyTimeSheet } from '@/lib/actions';
 import { FileSignature, CheckCircle, Download, Loader2 } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import type { TimeLog, User, Signature } from '@/lib/types';
+import { TimeSheetDocument } from '../pdf/time-sheet-document';
+import { PDFDownloadLink } from '@react-pdf/renderer';
 
 interface SignSheetWidgetProps {
-  initialIsSigned: boolean;
+  user: User;
+  logs: TimeLog[];
+  initialSignature: Signature | null;
 }
 
-export function SignSheetWidget({ initialIsSigned }: SignSheetWidgetProps) {
-  const [isSigned, setIsSigned] = useState(initialIsSigned);
+export function SignSheetWidget({ user, logs, initialSignature }: SignSheetWidgetProps) {
+  const [signature, setSignature] = useState(initialSignature);
   const [isLoading, setIsLoading] = useState(false);
+  const [isClient, setIsClient] = useState(false);
   const { toast } = useToast();
   const currentDate = new Date();
   const currentMonth = format(currentDate, "MMMM 'de' yyyy", { locale: ptBR });
   const currentMonthYear = format(currentDate, 'yyyy-MM');
 
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
+
   const handleSign = async () => {
     setIsLoading(true);
     const result = await signMyTimeSheet(currentMonthYear);
-    if (result.success) {
+    if (result.success && result.signature) {
         toast({
             title: 'Ponto Assinado!',
             description: `Sua folha de ponto de ${currentMonth} foi assinada com sucesso.`,
         });
-        setIsSigned(true);
+        setSignature(result.signature);
     } else {
         toast({
             variant: 'destructive',
@@ -38,10 +48,36 @@ export function SignSheetWidget({ initialIsSigned }: SignSheetWidgetProps) {
     }
     setIsLoading(false);
   };
+  
+  const DownloadButton = () => {
+    if (!isClient) {
+      return (
+        <Button variant="outline" size="sm" className="mt-4" disabled>
+          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+          Carregando...
+        </Button>
+      );
+    }
 
-  const handleDownload = () => {
-    alert('A funcionalidade de download do PDF será implementada em breve.');
+    return (
+      <PDFDownloadLink
+        document={<TimeSheetDocument user={user} logs={logs} signature={signature} />}
+        fileName={`minha-folha-ponto-${currentMonthYear}.pdf`}
+      >
+        {({ loading }) => (
+          <Button variant="outline" size="sm" className="mt-4" disabled={loading}>
+            {loading ? (
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+            ) : (
+              <Download className="mr-2 h-4 w-4" />
+            )}
+            {loading ? 'Gerando...' : 'Baixar Comprovante'}
+          </Button>
+        )}
+      </PDFDownloadLink>
+    );
   };
+
 
   return (
     <GlassCard>
@@ -55,15 +91,12 @@ export function SignSheetWidget({ initialIsSigned }: SignSheetWidgetProps) {
         </CardDescription>
       </CardHeader>
       <CardContent className="flex flex-col gap-4">
-        {isSigned ? (
+        {signature ? (
           <div className="flex flex-col items-center justify-center text-center p-4 bg-green-900/30 rounded-lg">
             <CheckCircle className="h-10 w-10 text-green-400 mb-2" />
             <p className="font-semibold text-foreground">Ponto Assinado!</p>
             <p className="text-sm text-muted-foreground">Sua folha de ponto para {currentMonth} já foi assinada.</p>
-             <Button variant="outline" size="sm" className="mt-4" onClick={handleDownload}>
-              <Download className="mr-2 h-4 w-4" />
-              Baixar Comprovante
-            </Button>
+             <DownloadButton />
           </div>
         ) : (
           <>

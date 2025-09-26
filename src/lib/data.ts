@@ -242,20 +242,20 @@ export const deleteUser = (userId: string) => {
 }
 
 // Signature functions
-export const getSignatureStatusForUser = (userId: string, monthYear: string): boolean => {
-    return signatures.some(s => s.userId === userId && s.monthYear === monthYear);
+export const getSignatureForUser = (userId: string, monthYear: string): Signature | null => {
+    return signatures.find(s => s.userId === userId && s.monthYear === monthYear) || null;
 }
 
-export const getAllSignatureStatus = (monthYear: string): Record<string, boolean> => {
-    const status: Record<string, boolean> = {};
-    users.filter(u => u.role === 'collaborator').forEach(user => {
-        status[user.id] = getSignatureStatusForUser(user.id, monthYear);
+export const getAllSignatures = (monthYear: string): Record<string, Signature | null> => {
+    const status: Record<string, Signature | null> = {};
+    users.filter(u => u.role === 'collaborator' || u.role === 'supervisor').forEach(user => {
+        status[user.id] = getSignatureForUser(user.id, monthYear);
     });
     return status;
 }
 
 export const addSignature = (userId: string, monthYear: string): Signature => {
-    if (getSignatureStatusForUser(userId, monthYear)) {
+    if (getSignatureForUser(userId, monthYear)) {
         throw new Error('Ponto já assinado para este mês.');
     }
     const newSignature: Signature = {
