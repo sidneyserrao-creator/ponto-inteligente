@@ -4,6 +4,7 @@ import { ClockWidget } from './collaborator/clock-widget';
 import { TimeLogsTable } from './collaborator/time-logs-table';
 import { MyPayslips } from './collaborator/my-payslips';
 import { SignSheetWidget } from './collaborator/sign-sheet-widget';
+import { MyScheduleWidget } from './collaborator/my-schedule-widget';
 import { PlaceHolderImages } from '@/lib/placeholder-images';
 
 interface CollaboratorDashboardProps {
@@ -32,6 +33,7 @@ export async function CollaboratorDashboard({ user, announcements, timeLogs, pay
         <TimeLogsTable timeLogs={timeLogs} />
       </div>
       <div className="space-y-6">
+        <MyScheduleWidget user={user} />
         <SignSheetWidget user={user} logs={timeLogs} initialSignature={signature} />
         <Announcements announcements={announcements} />
         <MyPayslips payslips={payslips} />
