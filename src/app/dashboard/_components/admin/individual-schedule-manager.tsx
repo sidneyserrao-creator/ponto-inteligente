@@ -1,5 +1,5 @@
 'use client';
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useRef, useEffect } from 'react';
 import { GlassCard, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/glass-card';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -10,17 +10,10 @@ import type { User, WorkPost, IndividualSchedule } from '@/lib/types';
 import { CalendarDays, Save, User as UserIcon } from 'lucide-react';
 import { useFormStatus } from 'react-dom';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
+import { format, startOfWeek, addDays } from 'date-fns';
+import { ptBR } from 'date-fns/locale';
 
-
-const daysOfWeek = [
-    { id: 'monday', label: 'Seg' },
-    { id: 'tuesday', label: 'Ter' },
-    { id: 'wednesday', label: 'Qua' },
-    { id: 'thursday', label: 'Qui' },
-    { id: 'friday', label: 'Sex' },
-    { id: 'saturday', label: 'Sab' },
-    { id: 'sunday', label: 'Dom' },
-];
+const dayIds = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
 
 function SubmitButton() {
     const { pending } = useFormStatus();
@@ -33,7 +26,30 @@ function SubmitButton() {
 
 function CollaboratorScheduleForm({ user, onSave }: { user: User, onSave: () => void}) {
     const { toast } = useToast();
+    const formRef = useRef<HTMLFormElement>(null);
+    const [daysOfWeek, setDaysOfWeek] = useState<{ id: string; label: string; }[]>([]);
 
+    useEffect(() => {
+        const start = startOfWeek(new Date(), { weekStartsOn: 1 }); // Week starts on Monday
+        const week = Array.from({ length: 7 }).map((_, i) => {
+            const day = addDays(start, i);
+            return {
+                id: dayIds[i],
+                label: format(day, 'dd EEE', { locale: ptBR }),
+            };
+        });
+        setDaysOfWeek(week);
+    }, []);
+
+    const handleSetFolga = (dayId: string) => {
+        if (formRef.current) {
+            const startInput = formRef.current.elements.namedItem(`${dayId}-start`) as HTMLInputElement;
+            const endInput = formRef.current.elements.namedItem(`${dayId}-end`) as HTMLInputElement;
+            if (startInput) startInput.value = '';
+            if (endInput) endInput.value = '';
+        }
+    };
+    
     const handleSubmit = async (formData: FormData) => {
         formData.append('userId', user.id);
         const result = await saveIndividualSchedule(formData);
@@ -47,7 +63,7 @@ function CollaboratorScheduleForm({ user, onSave }: { user: User, onSave: () => 
     };
 
     return (
-        <form action={handleSubmit} className="p-4 bg-background/30 border rounded-lg space-y-4">
+        <form ref={formRef} action={handleSubmit} className="p-4 bg-background/30 border rounded-lg space-y-4">
             <div className="flex items-center gap-3">
                  <Avatar>
                     <AvatarImage src={user.profilePhotoUrl} alt={user.name} />
@@ -59,7 +75,7 @@ function CollaboratorScheduleForm({ user, onSave }: { user: User, onSave: () => 
             <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-x-4 gap-y-2">
                 {daysOfWeek.map(day => (
                     <div key={day.id}>
-                        <p className="text-xs font-medium text-center mb-1">{day.label}</p>
+                        <p className="text-xs font-medium text-center mb-1 capitalize">{day.label}</p>
                         <div className="space-y-1">
                              <Input 
                                 type="time" 
@@ -73,6 +89,9 @@ function CollaboratorScheduleForm({ user, onSave }: { user: User, onSave: () => 
                                 className="h-8" 
                                 defaultValue={user.schedule?.[day.id as keyof IndividualSchedule]?.end}
                             />
+                             <Button type="button" variant="link" size="sm" className="h-auto p-0 text-xs w-full" onClick={() => handleSetFolga(day.id)}>
+                                Folga
+                            </Button>
                         </div>
                     </div>
                 ))}
