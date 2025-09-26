@@ -1,7 +1,7 @@
 'use server';
 
 import { createSession, deleteSession } from '@/lib/auth';
-import { findUserByEmail, addTimeLog, addAnnouncement, deleteAnnouncement, addPayslip, updateTimeLog, findUserById, addUser, updateUser, deleteUser, addWorkPost, addWorkShift } from '@/lib/data';
+import { findUserByEmail, addTimeLog, addAnnouncement, deleteAnnouncement, addPayslip, updateTimeLog, findUserById, addUser, updateUser, deleteUser, addWorkPost, addWorkShift, saveFile } from '@/lib/data';
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import { z } from 'zod';
@@ -133,8 +133,10 @@ const collaboratorSchema = z.object({
     id: z.string().optional(),
     name: z.string().min(1, 'Nome é obrigatório.'),
     email: z.string().email('E-mail inválido.'),
+    password: z.string().optional(),
     role: z.enum(['collaborator', 'supervisor', 'admin']),
     workPostId: z.string().optional(),
+    profilePhoto: z.instanceof(File).optional(),
 });
 
 export async function saveCollaborator(formData: FormData) {
@@ -143,22 +145,38 @@ export async function saveCollaborator(formData: FormData) {
     if (rawData.workPostId === 'none' || rawData.workPostId === '') {
         delete rawData.workPostId;
     }
+     if (rawData.password === '') {
+        delete rawData.password;
+    }
+    if (rawData.profilePhoto?.size === 0) {
+        delete rawData.profilePhoto;
+    }
     
     const validatedFields = collaboratorSchema.safeParse(rawData);
 
     if (!validatedFields.success) {
+        console.log(validatedFields.error.flatten().fieldErrors);
         return { error: 'Dados inválidos.', fieldErrors: validatedFields.error.flatten().fieldErrors };
     }
 
-    const { id, ...data } = validatedFields.data;
+    const { id, profilePhoto, ...data } = validatedFields.data;
+
+    if (!id && !data.password) {
+        return { error: 'Senha é obrigatória para novos colaboradores.' };
+    }
 
     try {
+        let profilePhotoUrl = undefined;
+        if (profilePhoto) {
+            profilePhotoUrl = await saveFile(profilePhoto);
+        }
+
+        const userData = { ...data, profilePhotoUrl };
+
         if (id) {
-            // Update
-            updateUser(id, data);
+            updateUser(id, userData);
         } else {
-            // Create
-            addUser(data);
+            addUser(userData as any);
         }
         revalidatePath('/dashboard');
         return { success: true, message: `Colaborador ${id ? 'atualizado' : 'criado'} com sucesso.` };
@@ -201,3 +219,4 @@ export async function createWorkShift(formData: FormData) {
     revalidatePath('/dashboard');
     return { success: true };
 }
+    

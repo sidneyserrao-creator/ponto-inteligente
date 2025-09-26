@@ -7,6 +7,7 @@ export type User = {
   role: Role;
   profilePhotoUrl: string;
   profilePhotoDataUri?: string;
+  passwordHash: string;
   team?: string[]; // IDs of users in their team, for supervisors
   workPostId?: string;
 };
@@ -55,3 +56,4 @@ export type WorkShift = {
   endTime: string;
   days: string[];
 };
+    

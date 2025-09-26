@@ -13,6 +13,7 @@ let users: User[] = [
     email: 'ana.silva@bitsolucoes.com',
     role: 'admin',
     profilePhotoUrl: anaSilvaProfile?.imageUrl ?? '',
+    passwordHash: 'hashed_password',
   },
   {
     id: 'user_bruno',
@@ -21,6 +22,7 @@ let users: User[] = [
     role: 'supervisor',
     profilePhotoUrl: brunoCostaProfile?.imageUrl ?? '',
     team: ['user_carlos', 'user_daniela'],
+    passwordHash: 'hashed_password',
   },
   {
     id: 'user_carlos',
@@ -29,6 +31,7 @@ let users: User[] = [
     role: 'collaborator',
     profilePhotoUrl: carlosSantosProfile?.imageUrl ?? '',
     workPostId: 'post1',
+    passwordHash: 'hashed_password',
   },
   {
     id: 'user_daniela',
@@ -37,6 +40,7 @@ let users: User[] = [
     role: 'collaborator',
     profilePhotoUrl: danielaPereiraProfile?.imageUrl ?? '',
     workPostId: 'post2',
+    passwordHash: 'hashed_password',
   },
 ];
 
@@ -152,7 +156,7 @@ export const getWorkPosts = () => workPosts;
 export const addWorkPost = (post: Omit<WorkPost, 'id'>) => {
     const newPost = { ...post, id: `post_${Date.now()}`};
     workPosts.push(newPost);
-    return newPost;
+return newPost;
 }
 
 export const getWorkShifts = () => workShifts;
@@ -162,22 +166,62 @@ export const addWorkShift = (shift: Omit<WorkShift, 'id'>) => {
     return newShift;
 }
 
+// This is a mock file storage. In a real app, use a cloud storage service.
+const fileStorage = new Map<string, ArrayBuffer>();
+
+export async function saveFile(file: File): Promise<string> {
+    const arrayBuffer = await file.arrayBuffer();
+    const fileName = `/uploads/${Date.now()}_${file.name}`;
+    fileStorage.set(fileName, arrayBuffer);
+    
+    // In this mock, we'll return a data URI for client-side display.
+    // In a real app, you would return the public URL from your storage provider.
+    const buffer = Buffer.from(arrayBuffer);
+    return `data:${file.type};base64,${buffer.toString('base64')}`;
+}
+
+
 // Collaborator management functions
-export const addUser = (user: Omit<User, 'id' | 'profilePhotoUrl'>) => {
+type UserCreationData = Omit<User, 'id' | 'profilePhotoUrl' | 'passwordHash'> & {
+    password?: string;
+    profilePhotoUrl?: string;
+}
+
+export const addUser = (data: UserCreationData) => {
+    // In a real app, you would hash the password here.
+    const passwordHash = data.password ? `hashed_${data.password}`: 'hashed_password';
+
     const newUser: User = {
-        ...user,
+        ...data,
         id: `user_${Date.now()}`,
-        // For new users, we can assign a default placeholder image
-        profilePhotoUrl: 'https://picsum.photos/seed/newuser/200/200',
+        profilePhotoUrl: data.profilePhotoUrl || 'https://picsum.photos/seed/newuser/200/200',
+        passwordHash: passwordHash,
     };
     users.push(newUser);
     return newUser;
 }
 
-export const updateUser = (userId: string, data: Partial<Omit<User, 'id'>>) => {
+type UserUpdateData = Partial<Omit<User, 'id'>> & { profilePhotoUrl?: string; password?: string; }
+export const updateUser = (userId: string, data: UserUpdateData) => {
     const userIndex = users.findIndex(u => u.id === userId);
     if (userIndex > -1) {
-        users[userIndex] = { ...users[userIndex], ...data };
+        const existingUser = users[userIndex];
+        let passwordHash = existingUser.passwordHash;
+        if (data.password) {
+            // In a real app, you would hash the new password.
+            passwordHash = `hashed_${data.password}`;
+        }
+
+        const { password, ...restOfData } = data;
+
+        users[userIndex] = { 
+            ...existingUser, 
+            ...restOfData,
+            passwordHash,
+            // Only update photo if a new one is provided
+            profilePhotoUrl: data.profilePhotoUrl || existingUser.profilePhotoUrl,
+        };
+
         return users[userIndex];
     }
     return null;
@@ -194,3 +238,4 @@ export const deleteUser = (userId: string) => {
     });
     return users.length < initialLength;
 }
+    

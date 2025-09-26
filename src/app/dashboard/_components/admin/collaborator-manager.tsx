@@ -1,5 +1,5 @@
 'use client';
-import { useState, useMemo, useActionState } from 'react';
+import { useState, useMemo, useActionState, useRef } from 'react';
 import { GlassCard, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/glass-card';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogClose } from '@/components/ui/dialog';
@@ -11,7 +11,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useToast } from '@/hooks/use-toast';
 import { saveCollaborator, removeCollaborator } from '@/lib/actions';
 import type { User, Role, WorkPost } from '@/lib/types';
-import { Users, PlusCircle, Edit, Trash2, Loader2, UserPlus, Search } from 'lucide-react';
+import { Users, PlusCircle, Edit, Trash2, Loader2, UserPlus, Search, Upload } from 'lucide-react';
 import { useFormStatus } from 'react-dom';
 
 const initialState = {
@@ -22,7 +22,7 @@ const initialState = {
 function SubmitButton({ isEditing }: { isEditing: boolean }) {
     const { pending } = useFormStatus();
     return (
-        <Button type="submit" disabled={pending}>
+        <Button type="submit" disabled={pending} className="w-full sm:w-auto">
             {pending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : (isEditing ? <Edit className="mr-2 h-4 w-4" /> : <UserPlus className="mr-2 h-4 w-4" />)}
             {pending ? 'Salvando...' : (isEditing ? 'Salvar Alterações' : 'Criar Colaborador')}
         </Button>
@@ -30,8 +30,22 @@ function SubmitButton({ isEditing }: { isEditing: boolean }) {
 }
 
 function CollaboratorForm({ user, workPosts, onFinished }: { user?: User | null, workPosts: WorkPost[], onFinished: () => void }) {
-    const [state, formAction] = useActionState(saveCollaborator, initialState);
     const { toast } = useToast();
+    const fileInputRef = useRef<HTMLInputElement>(null);
+    const [previewUrl, setPreviewUrl] = useState<string | null>(user?.profilePhotoUrl || null);
+
+    const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (file) {
+            const reader = new FileReader();
+            reader.onloadend = () => {
+                setPreviewUrl(reader.result as string);
+            };
+            reader.readAsDataURL(file);
+        } else {
+            setPreviewUrl(user?.profilePhotoUrl || null);
+        }
+    };
 
     const handleSubmit = async (formData: FormData) => {
         const result = await saveCollaborator(formData);
@@ -39,13 +53,31 @@ function CollaboratorForm({ user, workPosts, onFinished }: { user?: User | null,
             toast({ title: 'Sucesso!', description: result.message });
             onFinished();
         } else {
-            toast({ variant: 'destructive', title: 'Erro', description: result.error });
+            toast({ variant: 'destructive', title: 'Erro', description: result.error ?? 'Ocorreu um erro.' });
         }
     };
     
     return (
         <form action={handleSubmit} className="space-y-4">
-            <input type="hidden" name="id" value={user?.id} />
+            <input type="hidden" name="id" value={user?.id || ''} />
+            <div className="flex flex-col items-center gap-4">
+                <Avatar className="h-24 w-24">
+                    <AvatarImage src={previewUrl || undefined} alt={user?.name} />
+                    <AvatarFallback className="text-3xl">{user?.name ? user.name.split(' ').map(n => n[0]).join('') : <UserPlus/>}</AvatarFallback>
+                </Avatar>
+                <input 
+                    type="file" 
+                    name="profilePhoto" 
+                    ref={fileInputRef} 
+                    className="hidden" 
+                    onChange={handleFileChange}
+                    accept="image/*" 
+                />
+                <Button type="button" variant="outline" onClick={() => fileInputRef.current?.click()}>
+                    <Upload className="mr-2 h-4 w-4" />
+                    Alterar Foto
+                </Button>
+            </div>
             <div>
                 <Label htmlFor="name">Nome</Label>
                 <Input id="name" name="name" defaultValue={user?.name} required />
@@ -53,6 +85,10 @@ function CollaboratorForm({ user, workPosts, onFinished }: { user?: User | null,
             <div>
                 <Label htmlFor="email">Email</Label>
                 <Input id="email" name="email" type="email" defaultValue={user?.email} required />
+            </div>
+            <div>
+                <Label htmlFor="password">Senha</Label>
+                <Input id="password" name="password" type="password" placeholder={user ? 'Deixe em branco para não alterar' : ''} required={!user} />
             </div>
             <div>
                 <Label htmlFor="role">Função</Label>
@@ -81,8 +117,8 @@ function CollaboratorForm({ user, workPosts, onFinished }: { user?: User | null,
                     </SelectContent>
                 </Select>
             </div>
-            <DialogFooter className="flex-col-reverse sm:flex-row gap-2">
-                <DialogClose asChild><Button variant="outline" className="w-full sm:w-auto">Cancelar</Button></DialogClose>
+            <DialogFooter className="flex-col-reverse sm:flex-row gap-2 pt-4">
+                <DialogClose asChild><Button type="button" variant="outline" className="w-full sm:w-auto">Cancelar</Button></DialogClose>
                 <SubmitButton isEditing={!!user} />
             </DialogFooter>
         </form>
@@ -207,3 +243,4 @@ export function CollaboratorManager({ collaborators, workPosts }: { collaborator
     </GlassCard>
   );
 }
+    
