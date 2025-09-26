@@ -1,7 +1,7 @@
 'use server';
 
 import { createSession, deleteSession, getCurrentUser } from '@/lib/auth';
-import { findUserByEmail, addTimeLog, addAnnouncement, deleteAnnouncement, addPayslip, updateTimeLog, findUserById, addUser, updateUser, deleteUser, addWorkPost, addWorkShift, saveFile, addSignature, updateWorkPost, deleteWorkPost } from '@/lib/data';
+import { findUserByEmail, addTimeLog, addAnnouncement, deleteAnnouncement, addPayslip, updateTimeLog, findUserById, addUser, updateUser, deleteUser, addWorkPost, addWorkShift, saveFile, addSignature, updateWorkPost, deleteWorkPost, updateWorkShift, removeWorkShift as removeWorkShiftFromData } from '@/lib/data';
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import { z } from 'zod';
@@ -240,17 +240,53 @@ export async function removeWorkPost(workPostId: string) {
 }
 
 // WorkShift Actions
-export async function createWorkShift(formData: FormData) {
-    const name = formData.get('name') as string;
-    const startTime = formData.get('startTime') as string;
-    const endTime = formData.get('endTime') as string;
-    const days = formData.getAll('days') as string[];
+const workShiftSchema = z.object({
+    id: z.string().optional(),
+    name: z.string().min(1, 'Nome é obrigatório.'),
+    startTime: z.string().min(1, 'Horário de início é obrigatório.'),
+    endTime: z.string().min(1, 'Horário de fim é obrigatório.'),
+    days: z.array(z.string()).min(1, 'Selecione ao menos um dia.'),
+});
 
-    if (!name || !startTime || !endTime || days.length === 0) return { error: 'Todos os campos são obrigatórios.' };
+export async function saveWorkShift(formData: FormData) {
+    const rawData = {
+        id: formData.get('id') || undefined,
+        name: formData.get('name'),
+        startTime: formData.get('startTime'),
+        endTime: formData.get('endTime'),
+        days: formData.getAll('days'),
+    };
 
-    addWorkShift({ name, startTime, endTime, days });
-    revalidatePath('/dashboard');
-    return { success: true };
+    const validatedFields = workShiftSchema.safeParse(rawData);
+
+    if (!validatedFields.success) {
+        console.error(validatedFields.error.flatten().fieldErrors);
+        return { error: 'Dados inválidos. Verifique os campos e tente novamente.' };
+    }
+
+    const { id, ...data } = validatedFields.data;
+    
+    try {
+        if (id) {
+            updateWorkShift(id, data);
+        } else {
+            addWorkShift(data);
+        }
+        revalidatePath('/dashboard');
+        return { success: true, message: `Escala ${id ? 'atualizada' : 'criada'} com sucesso.` };
+    } catch (error) {
+        return { error: 'Falha ao salvar a escala de trabalho.' };
+    }
+}
+
+export async function removeWorkShift(shiftId: string) {
+    try {
+        removeWorkShiftFromData(shiftId);
+        revalidatePath('/dashboard');
+        return { success: true, message: 'Escala removida com sucesso.' };
+    } catch (error) {
+        return { error: 'Ocorreu um erro ao remover a escala.' };
+    }
 }
     
 export async function signMyTimeSheet(monthYear: string) {

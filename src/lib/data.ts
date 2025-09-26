@@ -1,4 +1,4 @@
-import type { User, TimeLog, Announcement, Payslip, WorkPost, WorkShift, Signature, WorkPostCreationData, WorkPostUpdateData } from '@/lib/types';
+import type { User, TimeLog, Announcement, Payslip, WorkPost, WorkShift, Signature, WorkPostCreationData, WorkPostUpdateData, WorkShiftCreationData, WorkShiftUpdateData } from '@/lib/types';
 import { PlaceHolderImages } from './placeholder-images';
 
 const anaSilvaProfile = PlaceHolderImages.find(img => img.id === 'user-ana-silva-profile');
@@ -153,8 +153,8 @@ export const updateTimeLog = (logId: string, newTimestamp: string) => {
     return null;
 };
 
-// WorkPost and WorkShift data functions
-export const getWorkPosts = () => workPosts;
+// WorkPost data functions
+export const getWorkPosts = () => workPosts.sort((a, b) => a.name.localeCompare(b.name));
 
 export const addWorkPost = (post: WorkPostCreationData) => {
     const newPost = { ...post, id: `post_${Date.now()}`};
@@ -176,11 +176,25 @@ export const deleteWorkPost = (id: string) => {
 }
 
 
-export const getWorkShifts = () => workShifts;
-export const addWorkShift = (shift: Omit<WorkShift, 'id'>) => {
-    const newShift = { ...shift, id: `shift_${Date.now()}`};
+export const getWorkShifts = () => workShifts.sort((a, b) => a.name.localeCompare(b.name));
+
+export const addWorkShift = (shift: WorkShiftCreationData) => {
+    const newShift: WorkShift = { ...shift, id: `shift_${Date.now()}`};
     workShifts.push(newShift);
     return newShift;
+}
+
+export const updateWorkShift = (id: string, data: WorkShiftUpdateData) => {
+    const shiftIndex = workShifts.findIndex(s => s.id === id);
+    if (shiftIndex > -1) {
+        workShifts[shiftIndex] = { ...workShifts[shiftIndex], ...data };
+        return workShifts[shiftIndex];
+    }
+    return null;
+}
+
+export const removeWorkShift = (id: string) => {
+    workShifts = workShifts.filter(s => s.id !== id);
 }
 
 // This is a mock file storage. In a real app, use a cloud storage service.

@@ -1,5 +1,5 @@
-import type { User, Announcement, WorkPost, TimeLog, Signature } from '@/lib/types';
-import { Announcements } from './announcements';
+import type { User, Announcement, WorkPost, TimeLog, Signature, WorkShift } from '@/lib/types';
+import { Announcements } from '../announcements';
 import { AnnouncementManager } from './admin/announcement-manager';
 import { DocumentManager } from './admin/document-manager';
 import { CollaboratorManager } from './admin/collaborator-manager';
@@ -8,17 +8,19 @@ import { TimeLogHistory } from './admin/time-log-history';
 import { SignedTimeSheets } from './admin/signed-time-sheets';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
+import { WorkShiftManager } from './admin/work-shift-manager';
 
 interface AdminDashboardProps {
   user: User;
   announcements: Announcement[];
   allUsers: User[];
   workPosts: WorkPost[];
+  workShifts: WorkShift[];
   allTimeLogs: TimeLog[];
   signatureStatus: Record<string, Signature | null>;
 }
 
-export function AdminDashboard({ user, announcements, allUsers, workPosts, allTimeLogs, signatureStatus }: AdminDashboardProps) {
+export function AdminDashboard({ user, announcements, allUsers, workPosts, workShifts, allTimeLogs, signatureStatus }: AdminDashboardProps) {
   const collaborators = allUsers.filter(u => u.role !== 'admin');
   const supervisors = allUsers.filter(u => u.role === 'supervisor');
 
@@ -61,9 +63,7 @@ export function AdminDashboard({ user, announcements, allUsers, workPosts, allTi
            </div>
         </TabsContent>
         <TabsContent value="shifts">
-            <p className="text-center text-muted-foreground p-10">
-                A funcionalidade para gerenciar escalas e turnos de trabalho aparecerá aqui.
-            </p>
+            <WorkShiftManager initialWorkShifts={workShifts} />
         </TabsContent>
         <TabsContent value="history">
             <TimeLogHistory allUsers={allUsers} allTimeLogs={allTimeLogs} />

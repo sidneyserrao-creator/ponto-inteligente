@@ -3,8 +3,8 @@ import { redirect } from 'next/navigation';
 import { AdminDashboard } from './_components/admin-dashboard';
 import { SupervisorDashboard } from './_components/supervisor/supervisor-dashboard';
 import { CollaboratorDashboard } from './_components/collaborator-dashboard';
-import type { User, WorkPost } from '@/lib/types';
-import { getAnnouncements, getTimeLogsForUser, getUsers, getPayslipsForUser, getAllTimeLogs, getWorkPosts, getSignatureForUser, getAllSignatures } from '@/lib/data';
+import type { User, WorkPost, WorkShift } from '@/lib/types';
+import { getAnnouncements, getTimeLogsForUser, getUsers, getPayslipsForUser, getAllTimeLogs, getWorkPosts, getSignatureForUser, getAllSignatures, getWorkShifts } from '@/lib/data';
 import { format } from 'date-fns';
 
 export default async function DashboardPage() {
@@ -22,13 +22,15 @@ export default async function DashboardPage() {
       case 'admin':
         const allUsers = getUsers();
         const workPosts = getWorkPosts();
+        const workShifts = getWorkShifts();
         const allTimeLogs = getAllTimeLogs();
         const signatureStatus = getAllSignatures(currentMonthYear);
         return <AdminDashboard 
                   user={user} 
                   announcements={announcements} 
                   allUsers={allUsers} 
-                  workPosts={workPosts} 
+                  workPosts={workPosts}
+                  workShifts={workShifts}
                   allTimeLogs={allTimeLogs}
                   signatureStatus={signatureStatus} 
                 />;
