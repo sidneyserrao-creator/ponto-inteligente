@@ -139,8 +139,8 @@ const collaboratorSchema = z.object({
 
 export async function saveCollaborator(formData: FormData) {
     const rawData: any = Object.fromEntries(formData.entries());
-    // Ensure workPostId is passed correctly, even if it's an empty string
-    if (rawData.workPostId === '') {
+    
+    if (rawData.workPostId === 'none' || rawData.workPostId === '') {
         delete rawData.workPostId;
     }
     

@@ -69,12 +69,12 @@ function CollaboratorForm({ user, workPosts, onFinished }: { user?: User | null,
             </div>
              <div>
                 <Label htmlFor="workPostId">Posto de Trabalho</Label>
-                 <Select name="workPostId" defaultValue={user?.workPostId}>
+                 <Select name="workPostId" defaultValue={user?.workPostId || 'none'}>
                     <SelectTrigger>
                         <SelectValue placeholder="Selecione o posto" />
                     </SelectTrigger>
                     <SelectContent>
-                        <SelectItem value="">Nenhum</SelectItem>
+                        <SelectItem value="none">Nenhum</SelectItem>
                         {workPosts.map(post => (
                             <SelectItem key={post.id} value={post.id}>{post.name}</SelectItem>
                         ))}
