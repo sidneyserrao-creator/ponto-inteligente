@@ -9,6 +9,7 @@ import { SignedTimeSheets } from './admin/signed-time-sheets';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
 import { WorkShiftManager } from './admin/work-shift-manager';
+import { IndividualScheduleManager } from './admin/individual-schedule-manager';
 
 interface AdminDashboardProps {
   user: User;
@@ -63,7 +64,10 @@ export function AdminDashboard({ user, announcements, allUsers, workPosts, workS
            </div>
         </TabsContent>
         <TabsContent value="shifts">
-            <WorkShiftManager initialWorkShifts={workShifts} />
+            <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+              <IndividualScheduleManager allUsers={allUsers} workPosts={workPosts} />
+              <WorkShiftManager initialWorkShifts={workShifts} />
+            </div>
         </TabsContent>
         <TabsContent value="history">
             <TimeLogHistory allUsers={allUsers} allTimeLogs={allTimeLogs} />

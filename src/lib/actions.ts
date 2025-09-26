@@ -1,12 +1,12 @@
 'use server';
 
 import { createSession, deleteSession, getCurrentUser } from '@/lib/auth';
-import { findUserByEmail, addTimeLog, addAnnouncement, deleteAnnouncement, addPayslip, updateTimeLog, findUserById, addUser, updateUser, deleteUser, addWorkPost, addWorkShift, saveFile, addSignature, updateWorkPost, deleteWorkPost, updateWorkShift, removeWorkShift as removeWorkShiftFromData } from '@/lib/data';
+import { findUserByEmail, addTimeLog, addAnnouncement, deleteAnnouncement, addPayslip, updateTimeLog, findUserById, addUser, updateUser, deleteUser, addWorkPost, addWorkShift, saveFile, addSignature, updateWorkPost, deleteWorkPost, updateWorkShift, removeWorkShift as removeWorkShiftFromData, updateUserSchedule } from '@/lib/data';
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import { z } from 'zod';
 import { validateTimeLogsWithFacialRecognition } from '@/ai/flows/validate-time-logs-with-facial-recognition';
-import type { Role, TimeLogAction } from './types';
+import type { Role, TimeLogAction, IndividualSchedule } from './types';
 
 const loginSchema = z.object({
   email: z.string().email('E-mail inválido.'),
@@ -23,7 +23,7 @@ export async function login(prevState: LoginState, formData: FormData): Promise<
 
   if (!validatedFields.success) {
     return {
-      error: validatedFields.error.flatten().fieldErrors.email?.[0] || validatedFields.error.flatten().fieldErrors.password?.[0],
+      error: validatedFields.error.flatten().fieldErrors.email?.[0] || validatedFields.error.flatten().fieldErrors.password?.[0] || 'Entrada inválida',
     };
   }
 
@@ -302,5 +302,36 @@ export async function signMyTimeSheet(monthYear: string) {
     } catch (error) {
         const errorMessage = error instanceof Error ? error.message : 'Ocorreu um erro desconhecido.';
         return { error: errorMessage };
+    }
+}
+
+const daysOfWeek = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
+
+export async function saveIndividualSchedule(formData: FormData) {
+    const userId = formData.get('userId') as string;
+
+    if (!userId) {
+        return { error: 'ID do usuário não fornecido.' };
+    }
+
+    const schedule: IndividualSchedule = {};
+    
+    daysOfWeek.forEach(day => {
+        const start = formData.get(`${day}-start`) as string;
+        const end = formData.get(`${day}-end`) as string;
+        if (start && end) {
+            schedule[day as keyof IndividualSchedule] = { start, end };
+        } else {
+            schedule[day as keyof IndividualSchedule] = undefined;
+        }
+    });
+
+    try {
+        updateUserSchedule(userId, schedule);
+        revalidatePath('/dashboard');
+        return { success: true };
+    } catch (error) {
+         const errorMessage = error instanceof Error ? error.message : 'Ocorreu um erro desconhecido.';
+        return { error: `Falha ao salvar a escala: ${errorMessage}` };
     }
 }

@@ -1,4 +1,4 @@
-import type { User, TimeLog, Announcement, Payslip, WorkPost, WorkShift, Signature, WorkPostCreationData, WorkPostUpdateData, WorkShiftCreationData, WorkShiftUpdateData } from '@/lib/types';
+import type { User, TimeLog, Announcement, Payslip, WorkPost, WorkShift, Signature, WorkPostCreationData, WorkPostUpdateData, WorkShiftCreationData, WorkShiftUpdateData, IndividualSchedule } from '@/lib/types';
 import { PlaceHolderImages } from './placeholder-images';
 
 const anaSilvaProfile = PlaceHolderImages.find(img => img.id === 'user-ana-silva-profile');
@@ -32,6 +32,13 @@ let users: User[] = [
     profilePhotoUrl: carlosSantosProfile?.imageUrl ?? '',
     workPostId: 'post1',
     passwordHash: 'hashed_password',
+    schedule: {
+      monday: { start: '08:00', end: '17:00' },
+      tuesday: { start: '08:00', end: '17:00' },
+      wednesday: { start: '08:00', end: '17:00' },
+      thursday: { start: '08:00', end: '17:00' },
+      friday: { start: '08:00', end: '16:00' },
+    }
   },
   {
     id: 'user_daniela',
@@ -296,4 +303,13 @@ export const addSignature = (userId: string, monthYear: string): Signature => {
     signatures.push(newSignature);
     return newSignature;
 }
-    
+
+// Individual Schedule functions
+export const updateUserSchedule = (userId: string, schedule: IndividualSchedule) => {
+    const userIndex = users.findIndex(u => u.id === userId);
+    if (userIndex === -1) {
+        throw new Error('Usuário não encontrado.');
+    }
+    users[userIndex].schedule = schedule;
+    return users[userIndex];
+};

@@ -1,5 +1,20 @@
 export type Role = 'collaborator' | 'supervisor' | 'admin';
 
+export type DaySchedule = {
+  start?: string;
+  end?: string;
+}
+
+export type IndividualSchedule = {
+  monday?: DaySchedule;
+  tuesday?: DaySchedule;
+  wednesday?: DaySchedule;
+  thursday?: DaySchedule;
+  friday?: DaySchedule;
+  saturday?: DaySchedule;
+  sunday?: DaySchedule;
+}
+
 export type User = {
   id: string;
   name: string;
@@ -10,6 +25,7 @@ export type User = {
   passwordHash: string;
   team?: string[]; // IDs of users in their team, for supervisors
   workPostId?: string;
+  schedule?: IndividualSchedule;
 };
 
 export type TimeLogAction = 'clock_in' | 'break_start' | 'break_end' | 'clock_out';
