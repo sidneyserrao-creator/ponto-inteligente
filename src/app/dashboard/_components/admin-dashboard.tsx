@@ -22,7 +22,7 @@ export function AdminDashboard({ user, announcements, allUsers, workPosts }: Adm
       <TabsList className="flex flex-row md:flex-col md:w-48 h-auto">
         <TabsTrigger value="overview" className="w-full justify-start">Visão Geral</TabsTrigger>
         <TabsTrigger value="collaborators" className="w-full justify-start">Colaboradores</TabsTrigger>
-        <TabsTrigger value="settings" className="w-full justify-start">Gestão</TabsTrigger>
+        <TabsTrigger value="settings" className="w-full justify-start">Gestão de Postos</TabsTrigger>
       </TabsList>
       <div className="flex-1">
         <TabsContent value="overview">
