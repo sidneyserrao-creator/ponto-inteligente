@@ -199,9 +199,15 @@ export async function removeCollaborator(userId: string) {
 export async function createWorkPost(formData: FormData) {
     const name = formData.get('name') as string;
     const address = formData.get('address') as string;
+    const supervisorId = formData.get('supervisorId') as string;
     if (!name || !address) return { error: 'Nome e endereço são obrigatórios.' };
 
-    addWorkPost({ name, address });
+    const workPostData: any = { name, address };
+    if (supervisorId && supervisorId !== 'none') {
+        workPostData.supervisorId = supervisorId;
+    }
+
+    addWorkPost(workPostData);
     revalidatePath('/dashboard');
     return { success: true, message: 'Posto de trabalho criado com sucesso.' };
 }

@@ -88,7 +88,7 @@ let payslips: Payslip[] = [
 ];
 
 let workPosts: WorkPost[] = [
-    { id: 'post1', name: 'Sede Administrativa', address: 'Rua das Flores, 123' },
+    { id: 'post1', name: 'Sede Administrativa', address: 'Rua das Flores, 123', supervisorId: 'user_bruno' },
     { id: 'post2', name: 'Cliente A - Filial Centro', address: 'Av. Principal, 456' },
 ];
 

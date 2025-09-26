@@ -15,6 +15,8 @@ interface AdminDashboardProps {
 
 export function AdminDashboard({ user, announcements, allUsers, workPosts }: AdminDashboardProps) {
   const collaborators = allUsers.filter(u => u.role !== 'admin');
+  const supervisors = allUsers.filter(u => u.role === 'supervisor');
+
   return (
     <Tabs defaultValue="overview" className="flex flex-col md:flex-row gap-6">
       <TabsList className="flex flex-row md:flex-col md:w-48 h-auto">
@@ -39,7 +41,7 @@ export function AdminDashboard({ user, announcements, allUsers, workPosts }: Adm
         </TabsContent>
         <TabsContent value="settings">
            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              <WorkPostManager initialWorkPosts={workPosts} />
+              <WorkPostManager initialWorkPosts={workPosts} supervisors={supervisors} allUsers={allUsers} />
                <p className="text-center text-muted-foreground p-10">
                   Outras opções de gestão como Escalas e Eventos aparecerão aqui.
               </p>

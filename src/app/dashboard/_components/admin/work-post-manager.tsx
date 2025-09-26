@@ -7,9 +7,10 @@ import { Label } from '@/components/ui/label';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { useToast } from '@/hooks/use-toast';
 import { createWorkPost } from '@/lib/actions';
-import type { WorkPost } from '@/lib/types';
-import { Briefcase, PlusCircle } from 'lucide-react';
+import type { WorkPost, User } from '@/lib/types';
+import { Briefcase, PlusCircle, UserCircle } from 'lucide-react';
 import { useFormStatus } from 'react-dom';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 function SubmitButton() {
     const { pending } = useFormStatus();
@@ -20,7 +21,13 @@ function SubmitButton() {
     );
 }
 
-export function WorkPostManager({ initialWorkPosts }: { initialWorkPosts: WorkPost[] }) {
+interface WorkPostManagerProps {
+  initialWorkPosts: WorkPost[];
+  supervisors: User[];
+  allUsers: User[];
+}
+
+export function WorkPostManager({ initialWorkPosts, supervisors, allUsers }: WorkPostManagerProps) {
   const { toast } = useToast();
   const formRef = useRef<HTMLFormElement>(null);
 
@@ -33,6 +40,10 @@ export function WorkPostManager({ initialWorkPosts }: { initialWorkPosts: WorkPo
         formRef.current?.reset();
     }
   };
+
+  const getSupervisorName = (supervisorId?: string) => {
+    return allUsers.find(u => u.id === supervisorId)?.name || 'N/A';
+  }
 
   return (
     <GlassCard>
@@ -53,6 +64,20 @@ export function WorkPostManager({ initialWorkPosts }: { initialWorkPosts: WorkPo
             <Label htmlFor="address">Endereço</Label>
             <Input id="address" name="address" placeholder="Rua, número, cidade..." required />
           </div>
+           <div className="space-y-2">
+            <Label htmlFor="supervisorId">Supervisor Responsável</Label>
+            <Select name="supervisorId">
+                <SelectTrigger>
+                    <SelectValue placeholder="Selecione um supervisor" />
+                </SelectTrigger>
+                <SelectContent>
+                    <SelectItem value="none">Nenhum</SelectItem>
+                    {supervisors.map(supervisor => (
+                        <SelectItem key={supervisor.id} value={supervisor.id}>{supervisor.name}</SelectItem>
+                    ))}
+                </SelectContent>
+            </Select>
+          </div>
           <SubmitButton />
         </form>
         
@@ -60,9 +85,13 @@ export function WorkPostManager({ initialWorkPosts }: { initialWorkPosts: WorkPo
         <ScrollArea className="h-40">
             <div className="space-y-2 pr-4">
                 {initialWorkPosts.map(post => (
-                    <div key={post.id} className="p-2 bg-background/50 rounded-md">
+                    <div key={post.id} className="p-3 bg-background/50 rounded-lg">
                         <p className="font-medium text-sm">{post.name}</p>
                         <p className="text-xs text-muted-foreground">{post.address}</p>
+                        <div className="flex items-center gap-2 mt-1 text-xs text-muted-foreground">
+                            <UserCircle className="h-4 w-4" />
+                            <span>{getSupervisorName(post.supervisorId)}</span>
+                        </div>
                     </div>
                 ))}
             </div>
