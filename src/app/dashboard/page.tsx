@@ -35,14 +35,23 @@ export default async function DashboardPage() {
                   signatureStatus={signatureStatus} 
                 />;
       case 'supervisor':
+        const allUsersForSupervisor = getUsers();
         const teamMemberIds = user.team || [];
-        const teamMembers = getUsers().filter(u => teamMemberIds.includes(u.id));
+        const teamMembers = allUsersForSupervisor.filter(u => teamMemberIds.includes(u.id));
         const allLogs = getAllTimeLogs();
+        const supervisedPosts = getWorkPosts().filter(p => p.supervisorId === user.id);
+
         const teamLogs = teamMembers.map(member => ({
             ...member,
             timeLogs: allLogs.filter(log => log.userId === member.id).sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()),
         }));
-        return <SupervisorDashboard user={user} announcements={announcements} teamLogs={teamLogs} />;
+        return <SupervisorDashboard 
+                  user={user} 
+                  announcements={announcements} 
+                  teamLogs={teamLogs} 
+                  supervisedPosts={supervisedPosts}
+                  teamMembers={teamMembers}
+                />;
       case 'collaborator':
         const timeLogs = getTimeLogsForUser(user.id);
         const payslips = getPayslipsForUser(user.id);

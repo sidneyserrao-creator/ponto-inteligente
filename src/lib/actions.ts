@@ -341,3 +341,27 @@ export async function saveIndividualSchedule(formData: FormData) {
         return { error: `Falha ao salvar a escala: ${errorMessage}` };
     }
 }
+
+const breakTimeSchema = z.object({
+    workPostId: z.string().min(1, 'É necessário selecionar um posto de trabalho.'),
+    breakStartTime: z.string().regex(/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/, 'Formato de hora inválido.'),
+    breakEndTime: z.string().regex(/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/, 'Formato de hora inválido.'),
+});
+
+export async function saveBreakTime(formData: FormData) {
+    const validatedFields = breakTimeSchema.safeParse(Object.fromEntries(formData.entries()));
+
+    if (!validatedFields.success) {
+        return { error: 'Dados inválidos. Verifique os horários e tente novamente.' };
+    }
+
+    const { workPostId, ...breakTimes } = validatedFields.data;
+
+    try {
+        updateWorkPost(workPostId, breakTimes);
+        revalidatePath('/dashboard');
+        return { success: true, message: 'Horário de intervalo atualizado com sucesso!' };
+    } catch (error) {
+        return { error: 'Ocorreu um erro ao salvar o horário de intervalo.' };
+    }
+}

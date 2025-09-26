@@ -58,6 +58,8 @@ export type WorkPost = {
   name: string;
   address: string;
   supervisorId?: string;
+  breakStartTime?: string;
+  breakEndTime?: string;
 };
 
 // Add a generic type for a WorkShift

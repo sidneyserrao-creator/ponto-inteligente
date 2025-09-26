@@ -105,8 +105,8 @@ let payslips: Payslip[] = [
 ];
 
 let workPosts: WorkPost[] = [
-    { id: 'post1', name: 'Sede Administrativa', address: 'Rua das Flores, 123', supervisorId: 'user_bruno' },
-    { id: 'post2', name: 'Cliente A - Filial Centro', address: 'Av. Principal, 456' },
+    { id: 'post1', name: 'Sede Administrativa', address: 'Rua das Flores, 123', supervisorId: 'user_bruno', breakStartTime: '12:00', breakEndTime: '13:00' },
+    { id: 'post2', name: 'Cliente A - Filial Centro', address: 'Av. Principal, 456', supervisorId: 'user_bruno' },
 ];
 
 let workShifts: WorkShift[] = [
@@ -174,7 +174,7 @@ export const updateTimeLog = (logId: string, newTimestamp: string) => {
 export const getWorkPosts = () => workPosts.sort((a, b) => a.name.localeCompare(b.name));
 
 export const addWorkPost = (post: WorkPostCreationData) => {
-    const newPost = { ...post, id: `post_${Date.now()}`};
+    const newPost: WorkPost = { ...post, id: `post_${Date.now()}`};
     workPosts.push(newPost);
     return newPost;
 }
