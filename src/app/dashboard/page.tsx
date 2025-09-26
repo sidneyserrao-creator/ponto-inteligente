@@ -1,7 +1,7 @@
 import { getCurrentUser } from '@/lib/auth';
 import { redirect } from 'next/navigation';
 import { AdminDashboard } from './_components/admin-dashboard';
-import { SupervisorDashboard } from './_components/supervisor-dashboard';
+import { SupervisorDashboard } from './_components/supervisor/supervisor-dashboard';
 import { CollaboratorDashboard } from './_components/collaborator-dashboard';
 import type { User } from '@/lib/types';
 import { getAnnouncements, getTimeLogsForUser, getUsers, getPayslipsForUser, getAllTimeLogs } from '@/lib/data';
