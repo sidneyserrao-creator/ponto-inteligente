@@ -1,4 +1,4 @@
-import type { User, TimeLog, Announcement, Payslip, WorkPost, WorkShift, Signature } from '@/lib/types';
+import type { User, TimeLog, Announcement, Payslip, WorkPost, WorkShift, Signature, WorkPostCreationData, WorkPostUpdateData } from '@/lib/types';
 import { PlaceHolderImages } from './placeholder-images';
 
 const anaSilvaProfile = PlaceHolderImages.find(img => img.id === 'user-ana-silva-profile');
@@ -155,11 +155,26 @@ export const updateTimeLog = (logId: string, newTimestamp: string) => {
 
 // WorkPost and WorkShift data functions
 export const getWorkPosts = () => workPosts;
-export const addWorkPost = (post: Omit<WorkPost, 'id'>) => {
+
+export const addWorkPost = (post: WorkPostCreationData) => {
     const newPost = { ...post, id: `post_${Date.now()}`};
     workPosts.push(newPost);
-return newPost;
+    return newPost;
 }
+
+export const updateWorkPost = (id: string, data: WorkPostUpdateData) => {
+    const postIndex = workPosts.findIndex(p => p.id === id);
+    if (postIndex > -1) {
+        workPosts[postIndex] = { ...workPosts[postIndex], ...data };
+        return workPosts[postIndex];
+    }
+    return null;
+}
+
+export const deleteWorkPost = (id: string) => {
+    workPosts = workPosts.filter(p => p.id !== id);
+}
+
 
 export const getWorkShifts = () => workShifts;
 export const addWorkShift = (shift: Omit<WorkShift, 'id'>) => {

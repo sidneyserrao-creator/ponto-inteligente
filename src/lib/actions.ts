@@ -1,7 +1,7 @@
 'use server';
 
 import { createSession, deleteSession, getCurrentUser } from '@/lib/auth';
-import { findUserByEmail, addTimeLog, addAnnouncement, deleteAnnouncement, addPayslip, updateTimeLog, findUserById, addUser, updateUser, deleteUser, addWorkPost, addWorkShift, saveFile, addSignature } from '@/lib/data';
+import { findUserByEmail, addTimeLog, addAnnouncement, deleteAnnouncement, addPayslip, updateTimeLog, findUserById, addUser, updateUser, deleteUser, addWorkPost, addWorkShift, saveFile, addSignature, updateWorkPost, deleteWorkPost } from '@/lib/data';
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import { z } from 'zod';
@@ -196,20 +196,47 @@ export async function removeCollaborator(userId: string) {
 }
 
 // WorkPost Actions
-export async function createWorkPost(formData: FormData) {
-    const name = formData.get('name') as string;
-    const address = formData.get('address') as string;
-    const supervisorId = formData.get('supervisorId') as string;
-    if (!name || !address) return { error: 'Nome e endereço são obrigatórios.' };
+const workPostSchema = z.object({
+    id: z.string().optional(),
+    name: z.string().min(1, 'Nome é obrigatório.'),
+    address: z.string().min(1, 'Endereço é obrigatório.'),
+    supervisorId: z.string().optional(),
+});
 
-    const workPostData: any = { name, address };
-    if (supervisorId && supervisorId !== 'none') {
-        workPostData.supervisorId = supervisorId;
+export async function saveWorkPost(formData: FormData) {
+    const rawData: any = Object.fromEntries(formData.entries());
+    if (rawData.supervisorId === 'none') {
+        rawData.supervisorId = undefined;
+    }
+    
+    const validatedFields = workPostSchema.safeParse(rawData);
+    if (!validatedFields.success) {
+        return { error: 'Dados inválidos.' };
     }
 
-    addWorkPost(workPostData);
-    revalidatePath('/dashboard');
-    return { success: true, message: 'Posto de trabalho criado com sucesso.' };
+    const { id, ...data } = validatedFields.data;
+
+    try {
+        if (id) {
+            updateWorkPost(id, data);
+        } else {
+            addWorkPost(data);
+        }
+        revalidatePath('/dashboard');
+        return { success: true, message: `Posto de trabalho ${id ? 'atualizado' : 'criado'} com sucesso.` };
+    } catch (error) {
+        return { error: 'Falha ao salvar o posto de trabalho.' };
+    }
+}
+
+export async function removeWorkPost(workPostId: string) {
+    try {
+        deleteWorkPost(workPostId);
+        revalidatePath('/dashboard');
+        return { success: true, message: 'Posto de trabalho removido com sucesso.' };
+    } catch (error) {
+        return { error: 'Ocorreu um erro ao remover o posto de trabalho.' };
+    }
 }
 
 // WorkShift Actions

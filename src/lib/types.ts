@@ -75,3 +75,6 @@ export type DailyTimeLog = {
     },
     totalHours: string;
 }
+
+export type WorkPostCreationData = Omit<WorkPost, 'id'>;
+export type WorkPostUpdateData = Partial<WorkPostCreationData>;
