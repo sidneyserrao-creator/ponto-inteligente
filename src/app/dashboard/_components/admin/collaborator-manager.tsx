@@ -1,5 +1,5 @@
 'use client';
-import { useState, useMemo, useActionState, useRef } from 'react';
+import { useState, useMemo, useRef } from 'react';
 import { GlassCard, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/glass-card';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogClose } from '@/components/ui/dialog';
@@ -13,6 +13,7 @@ import { saveCollaborator, removeCollaborator } from '@/lib/actions';
 import type { User, Role, WorkPost } from '@/lib/types';
 import { Users, PlusCircle, Edit, Trash2, Loader2, UserPlus, Search, Upload } from 'lucide-react';
 import { useFormStatus } from 'react-dom';
+import { ScrollArea } from '@/components/ui/scroll-area';
 
 const initialState = {
   message: '',
@@ -58,7 +59,7 @@ function CollaboratorForm({ user, workPosts, onFinished }: { user?: User | null,
     };
     
     return (
-        <form action={handleSubmit} className="space-y-4">
+        <form action={handleSubmit} className="space-y-4 pr-6">
             <input type="hidden" name="id" value={user?.id || ''} />
             <div className="flex flex-col items-center gap-4">
                 <Avatar className="h-24 w-24">
@@ -117,7 +118,7 @@ function CollaboratorForm({ user, workPosts, onFinished }: { user?: User | null,
                     </SelectContent>
                 </Select>
             </div>
-            <DialogFooter className="flex-col-reverse sm:flex-row gap-2 pt-4">
+            <DialogFooter className="flex-col-reverse sm:flex-row gap-2 pt-4 sticky bottom-0 bg-background pb-1">
                 <DialogClose asChild><Button type="button" variant="outline" className="w-full sm:w-auto">Cancelar</Button></DialogClose>
                 <SubmitButton isEditing={!!user} />
             </DialogFooter>
@@ -230,17 +231,21 @@ export function CollaboratorManager({ collaborators, workPosts }: { collaborator
       </CardContent>
 
         <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
-            <DialogContent>
+            <DialogContent className="max-h-[90vh] flex flex-col">
                 <DialogHeader>
                     <DialogTitle>{editingUser ? 'Editar Colaborador' : 'Adicionar Colaborador'}</DialogTitle>
                     <DialogDescription>
                         {editingUser ? 'Altere os dados do colaborador.' : 'Preencha os dados do novo colaborador.'}
                     </DialogDescription>
                 </DialogHeader>
-                <CollaboratorForm user={editingUser} workPosts={workPosts} onFinished={() => setIsFormOpen(false)} />
+                <ScrollArea className="flex-grow">
+                  <CollaboratorForm user={editingUser} workPosts={workPosts} onFinished={() => setIsFormOpen(false)} />
+                </ScrollArea>
             </DialogContent>
         </Dialog>
     </GlassCard>
   );
 }
+    
+
     
