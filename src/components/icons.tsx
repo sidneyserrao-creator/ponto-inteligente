@@ -1,24 +1,16 @@
 import type { SVGProps } from 'react';
+import Image from 'next/image';
 
-export function Logo(props: SVGProps<SVGSVGElement>) {
+export function Logo(props: React.ImgHTMLAttributes<HTMLImageElement>) {
+  // TODO: Substitua a URL abaixo pela URL do seu arquivo de logo PNG.
+  // Se você adicionar seu logo à pasta /public, o caminho será "/seu-logo.png".
+  const logoUrl = "https://placehold.co/160x28/0f172a/FFF?text=BIT+Seguran%C3%A7a";
+
   return (
-    // TODO: Substitua o código SVG abaixo pelo novo logo da sua empresa.
-    <svg
-      xmlns="http://www.w3.org/2000/svg"
-      viewBox="0 0 160 28"
+    <img
+      src={logoUrl}
+      alt="Bit Segurança Logo"
       {...props}
-    >
-      <text
-        x="0"
-        y="22"
-        fill="currentColor"
-        fontFamily="Inter, sans-serif"
-        fontSize="24"
-        fontWeight="bold"
-      >
-        Bit
-        <tspan fill="hsl(var(--primary))">Segurança</tspan>
-      </text>
-    </svg>
+    />
   );
 }
