@@ -1,0 +1,46 @@
+import { getCurrentUser } from '@/lib/auth';
+import { redirect } from 'next/navigation';
+import { AdminDashboard } from './_components/admin-dashboard';
+import { SupervisorDashboard } from './_components/supervisor-dashboard';
+import { CollaboratorDashboard } from './_components/collaborator-dashboard';
+import type { User } from '@/lib/types';
+import { getAnnouncements, getTimeLogsForUser, getUsers, getPayslipsForUser, getAllTimeLogs } from '@/lib/data';
+
+export default async function DashboardPage() {
+  const user = await getCurrentUser();
+
+  if (!user) {
+    redirect('/login');
+  }
+
+  const announcements = getAnnouncements();
+
+  const renderDashboard = (user: User) => {
+    switch (user.role) {
+      case 'admin':
+        return <AdminDashboard user={user} announcements={announcements} allUsers={getUsers()} />;
+      case 'supervisor':
+        const teamMemberIds = user.team || [];
+        const teamMembers = getUsers().filter(u => teamMemberIds.includes(u.id));
+        const allLogs = getAllTimeLogs();
+        const teamLogs = teamMembers.map(member => ({
+            ...member,
+            timeLogs: allLogs.filter(log => log.userId === member.id).sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()),
+        }));
+        return <SupervisorDashboard user={user} announcements={announcements} teamLogs={teamLogs} />;
+      case 'collaborator':
+        const timeLogs = getTimeLogsForUser(user.id);
+        const payslips = getPayslipsForUser(user.id);
+        return <CollaboratorDashboard user={user} announcements={announcements} timeLogs={timeLogs} payslips={payslips} />;
+      default:
+        return <div>Papel de usuário desconhecido.</div>;
+    }
+  };
+
+  return (
+    <div className="space-y-6">
+      <h1 className="text-3xl font-bold text-foreground">Dashboard</h1>
+      {renderDashboard(user)}
+    </div>
+  );
+}
