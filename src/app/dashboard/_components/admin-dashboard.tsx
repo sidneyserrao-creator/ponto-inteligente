@@ -23,6 +23,8 @@ export function AdminDashboard({ user, announcements, allUsers, workPosts }: Adm
         <TabsTrigger value="overview" className="w-full justify-start">Visão Geral</TabsTrigger>
         <TabsTrigger value="collaborators" className="w-full justify-start">Colaboradores</TabsTrigger>
         <TabsTrigger value="settings" className="w-full justify-start">Gestão de Postos</TabsTrigger>
+        <TabsTrigger value="history" className="w-full justify-start">Histórico de Pontos</TabsTrigger>
+        <TabsTrigger value="signed" className="w-full justify-start">Pontos Assinados</TabsTrigger>
       </TabsList>
       <div className="flex-1">
         <TabsContent value="overview">
@@ -46,6 +48,16 @@ export function AdminDashboard({ user, announcements, allUsers, workPosts }: Adm
                   Outras opções de gestão como Escalas e Eventos aparecerão aqui.
               </p>
            </div>
+        </TabsContent>
+        <TabsContent value="history">
+            <p className="text-center text-muted-foreground p-10">
+                A funcionalidade de Histórico de Pontos será implementada aqui.
+            </p>
+        </TabsContent>
+        <TabsContent value="signed">
+            <p className="text-center text-muted-foreground p-10">
+                A funcionalidade de Pontos Assinados será implementada aqui.
+            </p>
         </TabsContent>
       </div>
     </Tabs>
