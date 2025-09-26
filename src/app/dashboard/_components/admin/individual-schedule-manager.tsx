@@ -12,7 +12,7 @@ import { useFormStatus } from 'react-dom';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { format, startOfMonth, getDaysInMonth, addDays } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { ScrollArea } from '@/components/ui/scroll-area';
+import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
 
 function SubmitButton() {
     const { pending } = useFormStatus();
@@ -73,31 +73,32 @@ function CollaboratorScheduleForm({ user, onSave, currentMonth }: { user: User, 
                 <p className="font-semibold">{user.name}</p>
             </div>
             
-            <ScrollArea className="w-full">
-                <div className="flex space-x-4 pb-4">
-                    {daysOfMonth.map(day => (
-                        <div key={day.dateKey} className="w-28 flex-shrink-0">
-                            <p className="text-xs font-medium text-center mb-1 capitalize">{day.label}</p>
-                            <div className="space-y-1">
-                                <Input 
-                                    type="time" 
-                                    name={`${day.dateKey}-start`} 
-                                    className="h-8" 
-                                    defaultValue={user.schedule?.[day.dateKey]?.start}
-                                />
-                                <Input 
-                                    type="time" 
-                                    name={`${day.dateKey}-end`} 
-                                    className="h-8" 
-                                    defaultValue={user.schedule?.[day.dateKey]?.end}
-                                />
-                                <Button type="button" variant="link" size="sm" className="h-auto p-0 text-xs w-full" onClick={() => handleSetFolga(day.dateKey)}>
-                                    Folga
-                                </Button>
-                            </div>
+            <ScrollArea className="w-full whitespace-nowrap rounded-md border">
+              <div className="flex w-max space-x-4 p-4">
+                {daysOfMonth.map(day => (
+                    <div key={day.dateKey} className="w-28 flex-shrink-0">
+                        <p className="text-xs font-medium text-center mb-1 capitalize">{day.label}</p>
+                        <div className="space-y-1">
+                            <Input 
+                                type="time" 
+                                name={`${day.dateKey}-start`} 
+                                className="h-8" 
+                                defaultValue={user.schedule?.[day.dateKey]?.start}
+                            />
+                            <Input 
+                                type="time" 
+                                name={`${day.dateKey}-end`} 
+                                className="h-8" 
+                                defaultValue={user.schedule?.[day.dateKey]?.end}
+                            />
+                            <Button type="button" variant="link" size="sm" className="h-auto p-0 text-xs w-full" onClick={() => handleSetFolga(day.dateKey)}>
+                                Folga
+                            </Button>
                         </div>
-                    ))}
-                </div>
+                    </div>
+                ))}
+              </div>
+               <ScrollBar orientation="horizontal" />
             </ScrollArea>
             <SubmitButton />
         </form>
