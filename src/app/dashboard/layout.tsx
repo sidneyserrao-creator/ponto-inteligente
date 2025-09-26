@@ -1,7 +1,28 @@
 import { getCurrentUser } from '@/lib/auth';
 import { redirect } from 'next/navigation';
-import { SidebarProvider } from '@/components/ui/sidebar';
-import { DashboardNav } from './_components/dashboard-nav';
+import { Logo } from '@/components/icons';
+import { Button } from '@/components/ui/button';
+import { logout } from '@/lib/actions';
+import { LogOut } from 'lucide-react';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import type { User } from '@/lib/types';
+
+
+function UserProfile({ user }: { user: User }) {
+    const userInitials = user.name.split(' ').map(n => n[0]).join('');
+    return (
+        <div className="flex items-center gap-4">
+             <Avatar className="h-10 w-10 border">
+                <AvatarImage src={user.profilePhotoUrl} alt={user.name} />
+                <AvatarFallback>{userInitials}</AvatarFallback>
+            </Avatar>
+            <div className="text-left">
+                <p className="font-semibold">{user.name}</p>
+                <p className="text-xs text-muted-foreground">{user.role}</p>
+            </div>
+        </div>
+    )
+}
 
 export default async function DashboardLayout({
   children,
@@ -14,11 +35,22 @@ export default async function DashboardLayout({
   }
 
   return (
-    <SidebarProvider>
-      <div className="flex min-h-screen bg-background">
-        <DashboardNav user={user} />
-        <main className="flex-1 p-4 sm:p-6 lg:p-8">{children}</main>
+      <div className="flex min-h-screen flex-col bg-background">
+        <header className="sticky top-0 z-40 w-full border-b bg-background/80 backdrop-blur-sm">
+            <div className="container mx-auto flex h-16 items-center justify-between p-4">
+                <div className="flex items-center gap-6">
+                    <Logo className="h-8 w-auto" />
+                    <UserProfile user={user} />
+                </div>
+                <form action={logout}>
+                    <Button variant="outline" size="sm">
+                        <LogOut className="mr-2 h-4 w-4" />
+                        Sair
+                    </Button>
+                </form>
+            </div>
+        </header>
+        <main className="flex-1 container mx-auto p-4 sm:p-6 lg:p-8">{children}</main>
       </div>
-    </SidebarProvider>
   );
 }
