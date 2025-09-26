@@ -28,6 +28,7 @@ let users: User[] = [
     email: 'carlos.santos@bitsolucoes.com',
     role: 'collaborator',
     profilePhotoUrl: carlosSantosProfile?.imageUrl ?? '',
+    workPostId: 'post1',
   },
   {
     id: 'user_daniela',
@@ -35,6 +36,7 @@ let users: User[] = [
     email: 'daniela.pereira@bitsolucoes.com',
     role: 'collaborator',
     profilePhotoUrl: danielaPereiraProfile?.imageUrl ?? '',
+    workPostId: 'post2',
   },
 ];
 

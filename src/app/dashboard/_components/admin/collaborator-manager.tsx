@@ -1,5 +1,5 @@
 'use client';
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { GlassCard, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/glass-card';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogClose } from '@/components/ui/dialog';
@@ -10,8 +10,8 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useToast } from '@/hooks/use-toast';
 import { saveCollaborator, removeCollaborator } from '@/lib/actions';
-import type { User, Role } from '@/lib/types';
-import { Users, PlusCircle, Edit, Trash2, Loader2, UserPlus } from 'lucide-react';
+import type { User, Role, WorkPost } from '@/lib/types';
+import { Users, PlusCircle, Edit, Trash2, Loader2, UserPlus, Search } from 'lucide-react';
 import { useFormState, useFormStatus } from 'react-dom';
 
 const initialState = {
@@ -29,7 +29,7 @@ function SubmitButton({ isEditing }: { isEditing: boolean }) {
     );
 }
 
-function CollaboratorForm({ user, onFinished }: { user?: User | null, onFinished: () => void }) {
+function CollaboratorForm({ user, workPosts, onFinished }: { user?: User | null, workPosts: WorkPost[], onFinished: () => void }) {
     const [state, formAction] = useFormState(saveCollaborator, initialState);
     const { toast } = useToast();
 
@@ -67,6 +67,20 @@ function CollaboratorForm({ user, onFinished }: { user?: User | null, onFinished
                     </SelectContent>
                 </Select>
             </div>
+             <div>
+                <Label htmlFor="workPostId">Posto de Trabalho</Label>
+                 <Select name="workPostId" defaultValue={user?.workPostId}>
+                    <SelectTrigger>
+                        <SelectValue placeholder="Selecione o posto" />
+                    </SelectTrigger>
+                    <SelectContent>
+                        <SelectItem value="">Nenhum</SelectItem>
+                        {workPosts.map(post => (
+                            <SelectItem key={post.id} value={post.id}>{post.name}</SelectItem>
+                        ))}
+                    </SelectContent>
+                </Select>
+            </div>
             <DialogFooter>
                 <DialogClose asChild><Button variant="outline">Cancelar</Button></DialogClose>
                 <SubmitButton isEditing={!!user} />
@@ -75,10 +89,19 @@ function CollaboratorForm({ user, onFinished }: { user?: User | null, onFinished
     );
 }
 
-export function CollaboratorManager({ collaborators }: { collaborators: User[] }) {
+export function CollaboratorManager({ collaborators, workPosts }: { collaborators: User[], workPosts: WorkPost[] }) {
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingUser, setEditingUser] = useState<User | null>(null);
+  const [searchTerm, setSearchTerm] = useState('');
   const { toast } = useToast();
+
+  const filteredCollaborators = useMemo(() => {
+    if (!searchTerm) return collaborators;
+    return collaborators.filter(user => 
+        user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        user.email.toLowerCase().includes(searchTerm.toLowerCase())
+    );
+  }, [collaborators, searchTerm]);
 
   const handleEdit = (user: User) => {
     setEditingUser(user);
@@ -100,18 +123,34 @@ export function CollaboratorManager({ collaborators }: { collaborators: User[] }
         }
     }
   }
+  
+  const getWorkPostName = (workPostId?: string) => {
+    return workPosts.find(p => p.id === workPostId)?.name || 'N/A';
+  }
+
 
   return (
     <GlassCard>
-      <CardHeader className="flex flex-row items-center justify-between">
-        <div>
-            <CardTitle className="flex items-center gap-2">
-                <Users className="text-primary"/>
-                Gerenciar Colaboradores
-            </CardTitle>
-            <CardDescription>Adicione, edite ou remova colaboradores do sistema.</CardDescription>
+      <CardHeader>
+        <div className="flex flex-row items-start justify-between">
+            <div>
+                <CardTitle className="flex items-center gap-2">
+                    <Users className="text-primary"/>
+                    Gerenciar Colaboradores
+                </CardTitle>
+                <CardDescription>Adicione, edite ou remova colaboradores do sistema.</CardDescription>
+            </div>
+            <Button onClick={handleAdd}><PlusCircle className="mr-2 h-4 w-4" /> Adicionar</Button>
         </div>
-        <Button onClick={handleAdd}><PlusCircle className="mr-2 h-4 w-4" /> Adicionar</Button>
+        <div className="relative mt-4">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input 
+                placeholder="Buscar por nome ou email..."
+                className="pl-10"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+            />
+        </div>
       </CardHeader>
       <CardContent>
         <div className="max-h-96 overflow-auto">
@@ -121,11 +160,12 @@ export function CollaboratorManager({ collaborators }: { collaborators: User[] }
                         <TableHead>Nome</TableHead>
                         <TableHead>Email</TableHead>
                         <TableHead>Função</TableHead>
+                        <TableHead>Posto</TableHead>
                         <TableHead className="text-right">Ações</TableHead>
                     </TableRow>
                 </TableHeader>
                 <TableBody>
-                    {collaborators.map(user => (
+                    {filteredCollaborators.map(user => (
                         <TableRow key={user.id}>
                             <TableCell className="flex items-center gap-3">
                                 <Avatar className="h-8 w-8">
@@ -136,6 +176,7 @@ export function CollaboratorManager({ collaborators }: { collaborators: User[] }
                             </TableCell>
                             <TableCell>{user.email}</TableCell>
                             <TableCell>{user.role}</TableCell>
+                            <TableCell>{getWorkPostName(user.workPostId)}</TableCell>
                             <TableCell className="text-right">
                                 <Button variant="ghost" size="icon" onClick={() => handleEdit(user)}><Edit className="h-4 w-4" /></Button>
                                 <Button variant="ghost" size="icon" onClick={() => handleDelete(user.id)}><Trash2 className="h-4 w-4 text-destructive" /></Button>
@@ -155,7 +196,7 @@ export function CollaboratorManager({ collaborators }: { collaborators: User[] }
                         {editingUser ? 'Altere os dados do colaborador.' : 'Preencha os dados do novo colaborador.'}
                     </DialogDescription>
                 </DialogHeader>
-                <CollaboratorForm user={editingUser} onFinished={() => setIsFormOpen(false)} />
+                <CollaboratorForm user={editingUser} workPosts={workPosts} onFinished={() => setIsFormOpen(false)} />
             </DialogContent>
         </Dialog>
     </GlassCard>

@@ -8,6 +8,7 @@ export type User = {
   profilePhotoUrl: string;
   profilePhotoDataUri?: string;
   team?: string[]; // IDs of users in their team, for supervisors
+  workPostId?: string;
 };
 
 export type TimeLogAction = 'clock_in' | 'break_start' | 'break_end' | 'clock_out';

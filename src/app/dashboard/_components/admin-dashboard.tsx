@@ -1,17 +1,19 @@
-import type { User, Announcement } from '@/lib/types';
+import type { User, Announcement, WorkPost } from '@/lib/types';
 import { Announcements } from './announcements';
 import { AnnouncementManager } from './admin/announcement-manager';
 import { DocumentManager } from './admin/document-manager';
 import { CollaboratorManager } from './admin/collaborator-manager';
+import { WorkPostManager } from './admin/work-post-manager';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 interface AdminDashboardProps {
   user: User;
   announcements: Announcement[];
   allUsers: User[];
+  workPosts: WorkPost[];
 }
 
-export function AdminDashboard({ user, announcements, allUsers }: AdminDashboardProps) {
+export function AdminDashboard({ user, announcements, allUsers, workPosts }: AdminDashboardProps) {
   const collaborators = allUsers.filter(u => u.role !== 'admin');
   return (
     <Tabs defaultValue="overview">
@@ -32,12 +34,15 @@ export function AdminDashboard({ user, announcements, allUsers }: AdminDashboard
         </div>
       </TabsContent>
       <TabsContent value="collaborators">
-        <CollaboratorManager collaborators={allUsers} />
+        <CollaboratorManager collaborators={allUsers} workPosts={workPosts} />
       </TabsContent>
       <TabsContent value="settings">
-         <p className="text-center text-muted-foreground p-10">
-            Outras opções de gestão como Postos, Escalas e Eventos aparecerão aqui.
-          </p>
+         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <WorkPostManager initialWorkPosts={workPosts} />
+             <p className="text-center text-muted-foreground p-10">
+                Outras opções de gestão como Escalas e Eventos aparecerão aqui.
+            </p>
+         </div>
       </TabsContent>
     </Tabs>
   );

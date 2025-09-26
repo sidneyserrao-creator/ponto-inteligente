@@ -134,10 +134,17 @@ const collaboratorSchema = z.object({
     name: z.string().min(1, 'Nome é obrigatório.'),
     email: z.string().email('E-mail inválido.'),
     role: z.enum(['collaborator', 'supervisor', 'admin']),
+    workPostId: z.string().optional(),
 });
 
 export async function saveCollaborator(formData: FormData) {
-    const validatedFields = collaboratorSchema.safeParse(Object.fromEntries(formData.entries()));
+    const rawData: any = Object.fromEntries(formData.entries());
+    // Ensure workPostId is passed correctly, even if it's an empty string
+    if (rawData.workPostId === '') {
+        delete rawData.workPostId;
+    }
+    
+    const validatedFields = collaboratorSchema.safeParse(rawData);
 
     if (!validatedFields.success) {
         return { error: 'Dados inválidos.', fieldErrors: validatedFields.error.flatten().fieldErrors };
@@ -178,7 +185,7 @@ export async function createWorkPost(formData: FormData) {
 
     addWorkPost({ name, address });
     revalidatePath('/dashboard');
-    return { success: true };
+    return { success: true, message: 'Posto de trabalho criado com sucesso.' };
 }
 
 // WorkShift Actions

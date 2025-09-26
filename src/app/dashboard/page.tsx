@@ -3,8 +3,8 @@ import { redirect } from 'next/navigation';
 import { AdminDashboard } from './_components/admin-dashboard';
 import { SupervisorDashboard } from './_components/supervisor/supervisor-dashboard';
 import { CollaboratorDashboard } from './_components/collaborator-dashboard';
-import type { User } from '@/lib/types';
-import { getAnnouncements, getTimeLogsForUser, getUsers, getPayslipsForUser, getAllTimeLogs } from '@/lib/data';
+import type { User, WorkPost } from '@/lib/types';
+import { getAnnouncements, getTimeLogsForUser, getUsers, getPayslipsForUser, getAllTimeLogs, getWorkPosts } from '@/lib/data';
 
 export default async function DashboardPage() {
   const user = await getCurrentUser();
@@ -18,7 +18,9 @@ export default async function DashboardPage() {
   const renderDashboard = (user: User) => {
     switch (user.role) {
       case 'admin':
-        return <AdminDashboard user={user} announcements={announcements} allUsers={getUsers()} />;
+        const allUsers = getUsers();
+        const workPosts = getWorkPosts();
+        return <AdminDashboard user={user} announcements={announcements} allUsers={allUsers} workPosts={workPosts} />;
       case 'supervisor':
         const teamMemberIds = user.team || [];
         const teamMembers = getUsers().filter(u => teamMemberIds.includes(u.id));
