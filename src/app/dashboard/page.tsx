@@ -53,7 +53,7 @@ export default async function DashboardPage() {
                   teamMembers={teamMembers}
                 />;
       case 'collaborator':
-        const timeLogs = getTimeLogsForUser(user.id);
+        const timeLogs = getTimeLogsForUser(user.id).sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
         const payslips = getPayslipsForUser(user.id);
         const signature = getSignatureForUser(user.id, currentMonthYear);
         return <CollaboratorDashboard 
