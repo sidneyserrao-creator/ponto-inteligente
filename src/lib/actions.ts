@@ -10,33 +10,25 @@ import { validateTimeLogsWithFacialRecognition } from '@/ai/flows/validate-time-
 import type { Role, TimeLogAction, IndividualSchedule } from './types';
 import { getDaysInMonth, startOfMonth, format, addDays } from 'date-fns';
 
-const loginSchema = z.object({
-  idToken: z.string().min(1, 'idToken é obrigatório'),
-});
-
 type LoginState = {
   error?: string;
   success?: boolean;
 };
 
-export async function login(prevState: LoginState, formData: FormData): Promise<LoginState> {
-  const validatedFields = loginSchema.safeParse(Object.fromEntries(formData.entries()));
-
-  if (!validatedFields.success) {
+export async function login(prevState: LoginState | null, idToken: string): Promise<LoginState> {
+  if (!idToken || typeof idToken !== 'string') {
     return {
       error: 'Token de autenticação inválido.',
     };
   }
 
-  const { idToken } = validatedFields.data;
-  
   try {
     await createSession(idToken);
-    // Redirect is handled on the client-side after successful Firebase login
   } catch (error: any) {
     console.error("Session Login Error:", error);
     return { error: 'Falha ao criar sessão. Tente novamente.' };
   }
+  
   // This needs to be outside the try/catch, as redirect() throws an error.
   redirect('/dashboard');
 }
@@ -492,3 +484,4 @@ export async function createInitialAdminUser() {
       return { success: false, error: error.message };
     }
 }
+

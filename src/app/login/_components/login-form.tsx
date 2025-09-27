@@ -27,13 +27,13 @@ function SubmitButton() {
 }
 
 export function LoginForm() {
-  const [state, formAction] = useActionState(login, { error: undefined });
-  const [clientError, setClientError] = React.useState<string | undefined>(undefined);
-  const formRef = React.useRef<HTMLFormElement>(null);
+  const [error, setError] = React.useState<string | undefined>(undefined);
+  const [isPending, setIsPending] = React.useState(false);
 
-  const handleFormSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
       event.preventDefault();
-      setClientError(undefined);
+      setIsPending(true);
+      setError(undefined);
       
       const formData = new FormData(event.currentTarget);
       const email = formData.get('email') as string;
@@ -43,17 +43,13 @@ export function LoginForm() {
         const userCredential = await signInWithEmailAndPassword(auth, email, password);
         const idToken = await userCredential.user.getIdToken();
         
-        // Append idToken to a new FormData and submit the server action
-        const serverFormData = new FormData(formRef.current!);
-        serverFormData.append('idToken', idToken);
+        // Call the server action directly with the token
+        const result = await login(null, idToken);
 
-        const submitter = document.createElement('button');
-        submitter.type = 'submit';
-        submitter.style.display = 'none';
-        formRef.current?.appendChild(submitter);
-        submitter.click();
-        formRef.current?.removeChild(submitter);
-
+        if (result?.error) {
+            setError(result.error);
+        }
+        // If successful, the server action will handle the redirect.
 
       } catch (error: any) {
           if (error.code) {
@@ -61,20 +57,22 @@ export function LoginForm() {
               case 'auth/user-not-found':
               case 'auth/wrong-password':
               case 'auth/invalid-credential':
-                setClientError('Credenciais inválidas.');
+                setError('Credenciais inválidas.');
                 break;
               default:
-                setClientError('Ocorreu um erro. Tente novamente.');
+                setError('Ocorreu um erro. Tente novamente.');
                 break;
-            }
+agencies/        }
           } else {
-             setClientError('Ocorreu um erro desconhecido.');
+             setError('Ocorreu um erro desconhecido.');
           }
+      } finally {
+        setIsPending(false);
       }
   }
 
   return (
-    <form ref={formRef} action={formAction} onSubmit={handleFormSubmit} className="space-y-4">
+    <form onSubmit={handleSubmit} className="space-y-4">
       <div className="space-y-2">
         <Label htmlFor="email">E-mail</Label>
         <Input
@@ -95,23 +93,21 @@ export function LoginForm() {
         />
       </div>
       
-      {clientError && (
+      {error && (
         <Alert variant="destructive" className="mt-4">
           <AlertCircle className="h-4 w-4" />
           <AlertTitle>Erro de Autenticação</AlertTitle>
-          <AlertDescription>{clientError}</AlertDescription>
+          <AlertDescription>{error}</AlertDescription>
         </Alert>
       )}
 
-      {state?.error && (
-        <Alert variant="destructive" className="mt-4">
-          <AlertCircle className="h-4 w-4" />
-          <AlertTitle>Erro de Sessão</AlertTitle>
-          <AlertDescription>{state.error}</AlertDescription>
-        </Alert>
-      )}
-
-      <SubmitButton />
+      <Button 
+        type="submit" 
+        className="w-full bg-gradient-to-r from-primary to-accent text-primary-foreground hover:opacity-90 transition-opacity" 
+        disabled={isPending}
+      >
+        {isPending ? 'Entrando...' : <> <LogIn className="mr-2 h-4 w-4" /> Entrar </>}
+    </Button>
 
     </form>
   );
