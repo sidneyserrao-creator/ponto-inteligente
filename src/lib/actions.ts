@@ -1,7 +1,7 @@
 'use server';
 
 import { createSession, deleteSession, getCurrentUser } from '@/lib/auth';
-import { findUserByEmail, addTimeLog, addAnnouncement, deleteAnnouncement, addPayslip, updateTimeLog, findUserById, addUser, updateUser, deleteUser, addWorkPost, addWorkShift, saveFile, addSignature, updateWorkPost, deleteWorkPost, updateWorkShift, removeWorkShift, updateUserSchedule, addOccurrence } from '@/lib/data';
+import { findUserByEmail, addTimeLog, addAnnouncement, deleteAnnouncement, addPayslip, updateTimeLog, findUserById, addUser, updateUser, deleteUser, addWorkPost, addWorkShift, saveFile, addSignature, updateWorkPost, deleteWorkPost, updateWorkShift, removeWorkShift as removeDataWorkShift, updateUserSchedule, addOccurrence } from '@/lib/data';
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import { z } from 'zod';
@@ -192,16 +192,16 @@ export async function saveCollaborator(formData: FormData) {
     if (!id && !data.password) {
         return { error: 'Senha é obrigatória para novos colaboradores.' };
     }
-    if (!id && !profilePhoto) {
+    if (!id && !profilePhoto && !capturedPhoto) {
         return { error: 'Foto de perfil é obrigatória para novos colaboradores.' };
     }
 
     try {
         let profilePhotoUrl = undefined;
-        if (id && capturedPhoto) {
-            // If editing and a new photo was captured, save it.
+        if (capturedPhoto) {
+            // If creating or editing and a new photo was captured, save it.
             profilePhotoUrl = await saveFile(capturedPhoto);
-        } else if (!id && profilePhoto) {
+        } else if (profilePhoto) {
             // If creating and a photo was uploaded, save it.
             profilePhotoUrl = await saveFile(profilePhoto);
         }
@@ -318,7 +318,7 @@ export async function saveWorkShift(formData: FormData) {
 
 export async function removeWorkShift(shiftId: string) {
     try {
-        removeWorkShift(shiftId);
+        removeDataWorkShift(shiftId);
         revalidatePath('/dashboard');
         return { success: true, message: 'Escala removida com sucesso.' };
     } catch (error) {
