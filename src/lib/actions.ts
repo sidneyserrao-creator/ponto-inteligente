@@ -481,8 +481,8 @@ export async function createInitialAdminUser() {
     try {
       const adminUser = {
         name: 'Administrador',
-        email: 'admin@bitsolucoes.com',
-        password: 'password123',
+        email: 'admin@bit.com',
+        password: 'adminbit123',
         role: 'admin' as const,
         profilePhotoUrl: 'https://images.unsplash.com/photo-1560250097-0b93528c311a?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwzfHxtYW4lMjBwb3J0cmFpdHxlbnwwfHx8fDE3NTg4MzA1NjF8MA&ixlib=rb-4.1.0&q=80&w=1080',
       };
