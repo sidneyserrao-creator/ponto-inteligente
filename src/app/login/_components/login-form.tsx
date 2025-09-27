@@ -62,7 +62,7 @@ export function LoginForm() {
               default:
                 setError('Ocorreu um erro. Tente novamente.');
                 break;
-agencies/        }
+            }
           } else {
              setError('Ocorreu um erro desconhecido.');
           }
