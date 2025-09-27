@@ -65,7 +65,8 @@ export async function recordTimeLog(
     const user = findUserById(userId);
     if (!user) throw new Error('User not found');
 
-    const profilePhotoDataUri = await toDataURI(user.profilePhotoUrl);
+    // Use profilePhotoDataUri if it's already on the user object, otherwise fetch it.
+    const profilePhotoDataUri = user.profilePhotoDataUri || await toDataURI(user.profilePhotoUrl);
 
     if (!profilePhotoDataUri) {
       throw new Error('Could not load profile photo.');
@@ -75,6 +76,11 @@ export async function recordTimeLog(
       profilePhotoDataUri,
       submittedPhotoDataUri,
     });
+
+    // If validation fails, don't save the log, just return the reason.
+    if (!validationResult.isValidated) {
+        return { success: false, message: `Validação falhou: ${validationResult.reason}` };
+    }
 
     addTimeLog({
       userId,

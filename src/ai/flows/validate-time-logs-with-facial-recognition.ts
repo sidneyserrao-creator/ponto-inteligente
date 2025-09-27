@@ -37,7 +37,7 @@ const ValidateTimeLogsWithFacialRecognitionOutputSchema = z.object({
     ),
   reason: z
     .string()
-    .describe('The reason for the validation result.'),
+    .describe('The reason for the validation result. If validation fails, provide user-friendly advice, such as suggesting they remove hats or glasses, or find better lighting.'),
 });
 export type ValidateTimeLogsWithFacialRecognitionOutput = z.infer<
   typeof ValidateTimeLogsWithFacialRecognitionOutputSchema
@@ -58,10 +58,10 @@ const prompt = ai.definePrompt({
 Profile Photo: {{media url=profilePhotoDataUri}}
 Submitted Photo: {{media url=submittedPhotoDataUri}}
 
-Respond in JSON format with the following fields:
-- isValidated (boolean): Whether the submitted photo matches the profile photo.
-- confidence (number): The confidence level of the facial recognition match, between 0 and 1.
-- reason (string): The reason for the validation result.
+- If the person in the submitted photo is clearly the same as in the profile photo, set 'isValidated' to true.
+- If they are not the same person, or if the submitted photo is unclear (e.g., blurry, dark, face obscured), set 'isValidated' to false.
+- When 'isValidated' is false, the 'reason' field MUST contain a user-friendly message explaining what might be wrong and suggesting a solution. For example: "A pessoa na foto não parece ser a mesma do perfil.", "O rosto está muito escuro, por favor, vá para um local mais iluminado.", or "Rosto obstruído. Por favor, remova acessórios como chapéu ou óculos de sol."
+- The confidence score should reflect how sure you are of the match.
 `,
 });
 
@@ -76,4 +76,3 @@ const validateTimeLogsWithFacialRecognitionFlow = ai.defineFlow(
     return output!;
   }
 );
-
