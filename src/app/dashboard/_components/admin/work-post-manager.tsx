@@ -65,6 +65,28 @@ function WorkPostForm({ workPost, supervisors, onFinished }: { workPost?: WorkPo
         }
     }, [toast]);
     
+    const onMapClick = useCallback((e: google.maps.MapMouseEvent) => {
+        if (e.latLng) {
+            const lat = e.latLng.lat();
+            const lng = e.latLng.lng();
+            setCoordinates({ lat, lng });
+
+            // Reverse geocode to get address
+            const geocoder = new window.google.maps.Geocoder();
+            geocoder.geocode({ location: { lat, lng } }, (results, status) => {
+                if (status === 'OK') {
+                    if (results && results[0]) {
+                        setAddress(results[0].formatted_address);
+                    } else {
+                        setAddress(`Lat: ${lat.toFixed(5)}, Lng: ${lng.toFixed(5)}`);
+                    }
+                } else {
+                     setAddress(`Lat: ${lat.toFixed(5)}, Lng: ${lng.toFixed(5)}`);
+                }
+            });
+        }
+    }, []);
+
     const onLoad = useCallback((autocomplete: google.maps.places.Autocomplete) => {
         autocompleteRef.current = autocomplete;
     }, []);
@@ -98,7 +120,7 @@ function WorkPostForm({ workPost, supervisors, onFinished }: { workPost?: WorkPo
         }
     };
 
-    if (loadError) return <div>Erro ao carregar o mapa. Verifique a chave de API.</div>;
+    if (loadError) return <div>Erro ao carregar o mapa. Verifique a chave de API e se as APIs necessárias estão ativadas.</div>;
     
     return (
         <form action={handleSubmit} className="space-y-4 pr-2">
@@ -111,7 +133,7 @@ function WorkPostForm({ workPost, supervisors, onFinished }: { workPost?: WorkPo
                  <div className="space-y-2">
                     <Label htmlFor="address">Endereço</Label>
                     <Autocomplete onLoad={onLoad} onUnmount={onUnmount} onPlaceChanged={handlePlaceSelect}>
-                         <Input id="address" value={address} onChange={e => setAddress(e.target.value)} placeholder="Digite e selecione o endereço..." required className="w-full" />
+                         <Input id="address" value={address} onChange={e => setAddress(e.target.value)} placeholder="Digite ou clique no mapa para definir..." required className="w-full" />
                     </Autocomplete>
                 </div>
             )}
@@ -127,6 +149,7 @@ function WorkPostForm({ workPost, supervisors, onFinished }: { workPost?: WorkPo
                         mapContainerStyle={mapContainerStyle}
                         center={coordinates || defaultCenter}
                         zoom={coordinates ? 17 : 10}
+                        onClick={onMapClick}
                     >
                         {coordinates && (
                             <>
@@ -266,3 +289,5 @@ export function WorkPostManager({ initialWorkPosts, supervisors, allUsers }: Wor
     </GlassCard>
   );
 }
+
+    
