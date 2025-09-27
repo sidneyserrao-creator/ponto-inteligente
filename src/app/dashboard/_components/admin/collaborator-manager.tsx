@@ -1,5 +1,5 @@
 'use client';
-import { useState, useMemo, useRef } from 'react';
+import { useState, useMemo, useRef, useEffect } from 'react';
 import { GlassCard, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/glass-card';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogClose } from '@/components/ui/dialog';
@@ -11,7 +11,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useToast } from '@/hooks/use-toast';
 import { saveCollaborator, removeCollaborator } from '@/lib/actions';
 import type { User, Role, WorkPost } from '@/lib/types';
-import { Users, PlusCircle, Edit, Trash2, Loader2, UserPlus, Search, Upload } from 'lucide-react';
+import { Users, PlusCircle, Edit, Trash2, Loader2, UserPlus, Search, Upload, Camera, VideoOff, ArrowLeft } from 'lucide-react';
 import { useFormStatus } from 'react-dom';
 import { ScrollArea } from '@/components/ui/scroll-area';
 
@@ -32,8 +32,59 @@ function SubmitButton({ isEditing }: { isEditing: boolean }) {
 
 function CollaboratorForm({ user, workPosts, onFinished }: { user?: User | null, workPosts: WorkPost[], onFinished: () => void }) {
     const { toast } = useToast();
+    const isEditing = !!user;
+    const [view, setView] = useState<'form' | 'camera'>('form');
+    
     const fileInputRef = useRef<HTMLInputElement>(null);
+    const videoRef = useRef<HTMLVideoElement>(null);
+    const streamRef = useRef<MediaStream | null>(null);
+
     const [previewUrl, setPreviewUrl] = useState<string | null>(user?.profilePhotoUrl || null);
+    const [capturedImage, setCapturedImage] = useState<string | null>(null);
+    const [hasCameraPermission, setHasCameraPermission] = useState<boolean | null>(null);
+    
+    // Camera Logic
+    const startCamera = async () => {
+        if (streamRef.current) return;
+        try {
+            const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+            streamRef.current = stream;
+            if (videoRef.current) {
+                videoRef.current.srcObject = stream;
+            }
+            setHasCameraPermission(true);
+        } catch (error) {
+            console.error("Error accessing camera:", error);
+            setHasCameraPermission(false);
+            toast({
+                variant: "destructive",
+                title: "Câmera não permitida",
+                description: "Habilite o acesso à câmera nas configurações do navegador.",
+            });
+            setView('form');
+        }
+    };
+
+    const stopCamera = () => {
+        if (streamRef.current) {
+            streamRef.current.getTracks().forEach(track => track.stop());
+            streamRef.current = null;
+            if(videoRef.current) videoRef.current.srcObject = null;
+        }
+    };
+    
+    useEffect(() => {
+        if (view === 'camera') {
+            startCamera();
+        } else {
+            stopCamera();
+        }
+    }, [view]);
+    
+    // Cleanup camera on component unmount
+    useEffect(() => {
+      return () => stopCamera();
+    }, []);
 
     const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
@@ -41,6 +92,7 @@ function CollaboratorForm({ user, workPosts, onFinished }: { user?: User | null,
             const reader = new FileReader();
             reader.onloadend = () => {
                 setPreviewUrl(reader.result as string);
+                setCapturedImage(null); // Clear captured image if file is selected
             };
             reader.readAsDataURL(file);
         } else {
@@ -48,7 +100,28 @@ function CollaboratorForm({ user, workPosts, onFinished }: { user?: User | null,
         }
     };
 
+    const handleCaptureImage = () => {
+        if (videoRef.current) {
+            const canvas = document.createElement('canvas');
+            canvas.width = videoRef.current.videoWidth;
+            canvas.height = videoRef.current.videoHeight;
+            const context = canvas.getContext('2d');
+            if (context) {
+                context.drawImage(videoRef.current, 0, 0, canvas.width, canvas.height);
+                const dataUri = canvas.toDataURL('image/jpeg');
+                setPreviewUrl(dataUri);
+                setCapturedImage(dataUri);
+                setView('form');
+            }
+        }
+    };
+
+
     const handleSubmit = async (formData: FormData) => {
+        if(capturedImage) {
+            formData.append('capturedPhoto', capturedImage);
+        }
+        
         const result = await saveCollaborator(formData);
         if (result?.success) {
             toast({ title: 'Sucesso!', description: result.message });
@@ -57,6 +130,35 @@ function CollaboratorForm({ user, workPosts, onFinished }: { user?: User | null,
             toast({ variant: 'destructive', title: 'Erro', description: result.error ?? 'Ocorreu um erro.' });
         }
     };
+
+    if (view === 'camera') {
+      return (
+         <div className="w-full">
+            <DialogHeader className="mb-4 text-center">
+                <DialogTitle>Atualizar Foto de Perfil</DialogTitle>
+                <DialogDescription>Posicione o rosto do colaborador e capture a nova foto.</DialogDescription>
+            </DialogHeader>
+            <div className="relative w-full aspect-video bg-muted rounded-md overflow-hidden flex items-center justify-center">
+                <video ref={videoRef} className="w-full h-full object-cover" autoPlay muted playsInline />
+                {hasCameraPermission === false && (
+                    <div className="absolute inset-0 flex flex-col items-center justify-center bg-background/80 text-center">
+                        <VideoOff className="h-10 w-10 text-destructive mb-2"/>
+                        <p className="font-semibold">Câmera não disponível</p>
+                        <p className="text-sm text-muted-foreground">Verifique as permissões do seu navegador.</p>
+                    </div>
+                )}
+            </div>
+            <div className="flex gap-4 mt-4">
+              <Button variant="outline" onClick={() => setView('form')} className="flex-1">
+                <ArrowLeft /> Voltar
+              </Button>
+              <Button onClick={handleCaptureImage} className="flex-1" disabled={hasCameraPermission !== true}>
+                <Camera /> Capturar
+              </Button>
+            </div>
+          </div>
+      )
+    }
     
     return (
         <form action={handleSubmit} className="space-y-4 pr-6">
@@ -74,10 +176,17 @@ function CollaboratorForm({ user, workPosts, onFinished }: { user?: User | null,
                     onChange={handleFileChange}
                     accept="image/*" 
                 />
-                <Button type="button" variant="outline" onClick={() => fileInputRef.current?.click()}>
-                    <Upload className="mr-2 h-4 w-4" />
-                    Alterar Foto
-                </Button>
+                {isEditing ? (
+                    <Button type="button" variant="outline" onClick={() => setView('camera')}>
+                        <Camera className="mr-2 h-4 w-4" />
+                        Tirar Nova Foto
+                    </Button>
+                ) : (
+                    <Button type="button" variant="outline" onClick={() => fileInputRef.current?.click()}>
+                        <Upload className="mr-2 h-4 w-4" />
+                        Carregar Foto
+                    </Button>
+                )}
             </div>
             <div>
                 <Label htmlFor="name">Nome</Label>
@@ -230,7 +339,12 @@ export function CollaboratorManager({ collaborators, workPosts }: { collaborator
         </div>
       </CardContent>
 
-        <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
+        <Dialog open={isFormOpen} onOpenChange={(isOpen) => {
+          setIsFormOpen(isOpen);
+          if (!isOpen) {
+            setEditingUser(null);
+          }
+        }}>
             <DialogContent className="max-h-[90vh] flex flex-col">
                 <DialogHeader>
                     <DialogTitle>{editingUser ? 'Editar Colaborador' : 'Adicionar Colaborador'}</DialogTitle>
@@ -249,3 +363,4 @@ export function CollaboratorManager({ collaborators, workPosts }: { collaborator
     
 
     
+

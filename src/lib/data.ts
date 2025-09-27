@@ -230,15 +230,32 @@ export const removeWorkShift = (id: string) => {
 // This is a mock file storage. In a real app, use a cloud storage service.
 const fileStorage = new Map<string, ArrayBuffer>();
 
-export async function saveFile(file: File): Promise<string> {
-    const arrayBuffer = await file.arrayBuffer();
-    const fileName = `/uploads/${Date.now()}_${file.name}`;
-    fileStorage.set(fileName, arrayBuffer);
+export async function saveFile(fileOrDataUri: File | string): Promise<string> {
+    let buffer: Buffer;
+    let fileType: string;
+    let fileName: string;
+
+    if (typeof fileOrDataUri === 'string') {
+        // Handle Data URI
+        const parts = fileOrDataUri.match(/^data:(.+);base64,(.+)$/);
+        if (!parts) throw new Error("Invalid Data URI");
+        fileType = parts[1];
+        buffer = Buffer.from(parts[2], 'base64');
+        fileName = `/uploads/${Date.now()}_captured.jpg`;
+    } else {
+        // Handle File object
+        const file = fileOrDataUri;
+        const arrayBuffer = await file.arrayBuffer();
+        buffer = Buffer.from(arrayBuffer);
+        fileType = file.type;
+        fileName = `/uploads/${Date.now()}_${file.name}`;
+    }
+
+    fileStorage.set(fileName, buffer);
     
     // In this mock, we'll return a data URI for client-side display.
     // In a real app, you would return the public URL from your storage provider.
-    const buffer = Buffer.from(arrayBuffer);
-    return `data:${file.type};base64,${buffer.toString('base64')}`;
+    return `data:${fileType};base64,${buffer.toString('base64')}`;
 }
 
 

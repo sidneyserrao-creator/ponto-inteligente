@@ -144,6 +144,7 @@ const collaboratorSchema = z.object({
     role: z.enum(['collaborator', 'supervisor', 'admin']),
     workPostId: z.string().optional(),
     profilePhoto: z.instanceof(File).optional(),
+    capturedPhoto: z.string().optional(), // Base64 string for captured photo
 });
 
 export async function saveCollaborator(formData: FormData) {
@@ -166,15 +167,22 @@ export async function saveCollaborator(formData: FormData) {
         return { error: 'Dados inválidos.', fieldErrors: validatedFields.error.flatten().fieldErrors };
     }
 
-    const { id, profilePhoto, ...data } = validatedFields.data;
+    const { id, profilePhoto, capturedPhoto, ...data } = validatedFields.data;
 
     if (!id && !data.password) {
         return { error: 'Senha é obrigatória para novos colaboradores.' };
     }
+    if (!id && !profilePhoto) {
+        return { error: 'Foto de perfil é obrigatória para novos colaboradores.' };
+    }
 
     try {
         let profilePhotoUrl = undefined;
-        if (profilePhoto) {
+        if (id && capturedPhoto) {
+            // If editing and a new photo was captured, save it.
+            profilePhotoUrl = await saveFile(capturedPhoto);
+        } else if (!id && profilePhoto) {
+            // If creating and a photo was uploaded, save it.
             profilePhotoUrl = await saveFile(profilePhoto);
         }
 
