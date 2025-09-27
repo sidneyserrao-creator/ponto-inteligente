@@ -9,12 +9,13 @@ const firebaseConfig = {
   appId: "1:319012964573:web:aa3c611d6fe930ba82f334"
 };
 
-if (!admin.apps.length) {
+// Check if the required environment variables are set before initializing.
+if (!admin.apps.length && process.env.FIREBASE_PRIVATE_KEY && process.env.FIREBASE_CLIENT_EMAIL) {
     admin.initializeApp({
         credential: admin.credential.cert({
             projectId: firebaseConfig.projectId,
             clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
-            privateKey: process.env.FIREBASE_PRIVATE_KEY?.replace(/\\n/g, '\n'),
+            privateKey: process.env.FIREBASE_PRIVATE_KEY.replace(/\\n/g, '\n'),
         }),
     });
 }

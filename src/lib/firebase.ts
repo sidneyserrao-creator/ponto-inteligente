@@ -24,3 +24,4 @@ export const db = getFirestore(app);
 export const storage = getStorage(app);
 // export const messaging = getMessaging(app); // Uncomment when FCM is fully set up
 
+
