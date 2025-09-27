@@ -62,9 +62,9 @@ export function OccurrenceManager({ allUsers, initialOccurrences }: OccurrenceMa
   }, [state, toast]);
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Formulário de Registro */}
-        <GlassCard className="md:col-span-1">
+        <GlassCard>
             <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                     <PlusCircle className="text-primary" />
@@ -139,7 +139,7 @@ export function OccurrenceManager({ allUsers, initialOccurrences }: OccurrenceMa
         </GlassCard>
 
         {/* Lista de Ocorrências */}
-        <GlassCard className="md:col-span-2">
+        <GlassCard>
             <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                     <ClipboardList className="text-primary" />
