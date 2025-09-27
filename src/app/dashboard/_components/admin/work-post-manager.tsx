@@ -37,7 +37,7 @@ function WorkPostForm({ workPost, supervisors, onFinished }: { workPost?: WorkPo
     };
 
     return (
-        <form action={handleSubmit} className="space-y-4">
+        <form action={handleSubmit} className="space-y-4 pr-2">
             <input type="hidden" name="id" value={workPost?.id || ''} />
             <div className="space-y-2">
                 <Label htmlFor="name">Nome do Posto</Label>
@@ -99,7 +99,7 @@ function WorkPostForm({ workPost, supervisors, onFinished }: { workPost?: WorkPo
                 </div>
             </div>
 
-             <DialogFooter>
+             <DialogFooter className="sticky bottom-0 bg-background py-4 pr-4">
                 <DialogClose asChild><Button type="button" variant="outline">Cancelar</Button></DialogClose>
                 <SubmitButton isEditing={!!workPost} />
             </DialogFooter>
@@ -187,14 +187,16 @@ export function WorkPostManager({ initialWorkPosts, supervisors, allUsers }: Wor
       </CardContent>
 
        <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
-            <DialogContent>
-                <DialogHeader>
+            <DialogContent className="max-h-[90vh] flex flex-col p-0">
+                <DialogHeader className="p-6 pb-0">
                     <DialogTitle>{editingPost ? 'Editar Posto de Trabalho' : 'Novo Posto de Trabalho'}</DialogTitle>
                     <DialogDescription>
                         {editingPost ? 'Altere os dados do posto de trabalho e sua área de ponto.' : 'Preencha os dados do novo posto de trabalho.'}
                     </DialogDescription>
                 </DialogHeader>
-                <WorkPostForm workPost={editingPost} supervisors={supervisors} onFinished={() => setIsFormOpen(false)} />
+                <ScrollArea className="flex-grow px-6">
+                    <WorkPostForm workPost={editingPost} supervisors={supervisors} onFinished={() => setIsFormOpen(false)} />
+                </ScrollArea>
             </DialogContent>
         </Dialog>
     </GlassCard>
