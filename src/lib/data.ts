@@ -109,8 +109,8 @@ let payslips: Payslip[] = [
 ];
 
 let workPosts: WorkPost[] = [
-    { id: 'post1', name: 'Sede Administrativa', address: 'Rua das Flores, 123', supervisorId: 'user_bruno', latitude: -23.55052, longitude: -46.633308, radius: 100 },
-    { id: 'post2', name: 'Cliente A - Filial Centro', address: 'Av. Principal, 456', supervisorId: 'user_bruno', latitude: -22.906847, longitude: -43.172896, radius: 150 },
+    { id: 'post1', name: 'Sede Administrativa', address: 'Rua das Flores, 123', supervisorId: 'user_bruno' },
+    { id: 'post2', name: 'Cliente A - Filial Centro', address: 'Av. Principal, 456', supervisorId: 'user_bruno' },
 ];
 
 let workShifts: WorkShift[] = [

@@ -1,7 +1,7 @@
 'use server';
 
 import { createSession, deleteSession, getCurrentUser } from '@/lib/auth';
-import { findUserByEmail, addTimeLog, addAnnouncement, deleteAnnouncement, addPayslip, updateTimeLog, findUserById, addUser, updateUser, deleteUser, addWorkPost, addWorkShift, saveFile, addSignature, updateWorkPost, deleteWorkPost, updateWorkShift, removeWorkShift as removeWorkShiftFromData, updateUserSchedule, addOccurrence, getWorkPosts } from '@/lib/data';
+import { findUserByEmail, addTimeLog, addAnnouncement, deleteAnnouncement, addPayslip, updateTimeLog, findUserById, addUser, updateUser, deleteUser, addWorkPost, addWorkShift, saveFile, addSignature, updateWorkPost, deleteWorkPost, updateWorkShift, removeWorkShift, updateUserSchedule, addOccurrence } from '@/lib/data';
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import { z } from 'zod';
@@ -56,22 +56,6 @@ async function toDataURI(url: string): Promise<string> {
   return `data:${blob.type};base64,${base64}`;
 }
 
-// Haversine formula to calculate distance between two lat/lon points
-const haversineDistance = (lat1: number, lon1: number, lat2: number, lon2: number): number => {
-    const R = 6371e3; // metres
-    const φ1 = lat1 * Math.PI/180;
-    const φ2 = lat2 * Math.PI/180;
-    const Δφ = (lat2-lat1) * Math.PI/180;
-    const Δλ = (lon2-lon1) * Math.PI/180;
-
-    const a = Math.sin(Δφ/2) * Math.sin(Δφ/2) +
-              Math.cos(φ1) * Math.cos(φ2) *
-              Math.sin(Δλ/2) * Math.sin(Δλ/2);
-    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
-
-    return R * c; // in metres
-}
-
 export async function recordTimeLog(
   userId: string,
   action: TimeLogAction,
@@ -82,20 +66,6 @@ export async function recordTimeLog(
   try {
     const user = findUserById(userId);
     if (!user) throw new Error('Usuário não encontrado.');
-
-    if (user.workPostId) {
-        const workPost = getWorkPosts().find(p => p.id === user.workPostId);
-        if (workPost && workPost.latitude && workPost.longitude && workPost.radius) {
-            if (!location) {
-                return { success: false, message: "Não foi possível obter sua localização. Ative o serviço de localização no seu navegador e tente novamente." };
-            }
-            const distance = haversineDistance(location.latitude, location.longitude, workPost.latitude, workPost.longitude);
-            if (distance > workPost.radius) {
-                return { success: false, message: `Você está a ${Math.round(distance)} metros do seu posto de trabalho. A distância máxima permitida é de ${workPost.radius} metros.` };
-            }
-        }
-    }
-
 
     // Use profilePhotoDataUri if it's already on the user object, otherwise fetch it.
     const profilePhotoDataUri = user.profilePhotoDataUri || await toDataURI(user.profilePhotoUrl);
@@ -266,9 +236,6 @@ const workPostSchema = z.object({
     name: z.string().min(1, 'Nome é obrigatório.'),
     address: z.string().min(1, 'Endereço é obrigatório.'),
     supervisorId: z.string().optional(),
-    latitude: z.coerce.number().optional(),
-    longitude: z.coerce.number().optional(),
-    radius: z.coerce.number().min(1, 'Raio deve ser maior que zero.').optional(),
 });
 
 
@@ -351,7 +318,7 @@ export async function saveWorkShift(formData: FormData) {
 
 export async function removeWorkShift(shiftId: string) {
     try {
-        removeWorkShiftFromData(shiftId);
+        removeWorkShift(shiftId);
         revalidatePath('/dashboard');
         return { success: true, message: 'Escala removida com sucesso.' };
     } catch (error) {

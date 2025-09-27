@@ -66,9 +66,6 @@ export type WorkPost = {
   name: string;
   address: string;
   supervisorId?: string;
-  latitude?: number;
-  longitude?: number;
-  radius?: number; // in meters
 };
 
 // Add a generic type for a WorkShift
