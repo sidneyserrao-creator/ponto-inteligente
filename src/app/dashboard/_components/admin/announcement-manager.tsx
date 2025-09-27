@@ -45,7 +45,7 @@ export function AnnouncementManager({ initialAnnouncements }: { initialAnnouncem
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
             <Megaphone className="text-primary"/>
-            Gerenciar Anúncios
+            Criar Avisos
         </CardTitle>
         <CardDescription>Crie e remova anúncios para toda a empresa.</CardDescription>
       </CardHeader>
