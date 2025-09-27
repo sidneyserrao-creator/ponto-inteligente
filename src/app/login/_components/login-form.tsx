@@ -44,9 +44,16 @@ export function LoginForm() {
         const idToken = await userCredential.user.getIdToken();
         
         // Append idToken to a new FormData and submit the server action
-        const serverFormData = new FormData();
+        const serverFormData = new FormData(formRef.current!);
         serverFormData.append('idToken', idToken);
-        formRef.current?.requestSubmit(); // This submits the form with the server action
+
+        const submitter = document.createElement('button');
+        submitter.type = 'submit';
+        submitter.style.display = 'none';
+        formRef.current?.appendChild(submitter);
+        submitter.click();
+        formRef.current?.removeChild(submitter);
+
 
       } catch (error: any) {
           if (error.code) {
