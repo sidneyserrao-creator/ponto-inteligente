@@ -79,7 +79,7 @@ export function AdminDashboard({ user, announcements, allUsers, workPosts, workS
             <TimeLogHistory allUsers={allUsers} allTimeLogs={allTimeLogs} />
         </TabsContent>
         <TabsContent value="signed">
-           <SignedTimeSheets collaborators={collaborators} signatureStatus={signatureStatus} />
+           <SignedTimeSheets collaborators={collaborators} signatureStatus={signatureStatus} allTimeLogs={allTimeLogs}/>
         </TabsContent>
       </div>
     </Tabs>

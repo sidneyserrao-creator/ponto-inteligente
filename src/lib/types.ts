@@ -58,6 +58,7 @@ export type Payslip = {
   userId: string;
   fileName: string;
   uploadDate: string;
+  fileUrl: string;
 };
 
 // Add a generic type for a WorkPost

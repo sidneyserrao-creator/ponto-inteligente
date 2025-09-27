@@ -8,12 +8,9 @@ import { z } from 'zod';
 import { validateTimeLogsWithFacialRecognition } from '@/ai/flows/validate-time-logs-with-facial-recognition';
 import type { Role, TimeLogAction, IndividualSchedule } from './types';
 import { getDaysInMonth, startOfMonth, format, addDays } from 'date-fns';
-import { signInWithEmailAndPassword } from 'firebase/auth';
-import { auth } from './firebase';
 
 const loginSchema = z.object({
-  email: z.string().email('E-mail inválido.'),
-  password: z.string().min(1, 'Senha é obrigatória.'),
+  idToken: z.string().min(1, 'idToken é obrigatório'),
 });
 
 type LoginState = {
@@ -26,39 +23,21 @@ export async function login(prevState: LoginState, formData: FormData): Promise<
 
   if (!validatedFields.success) {
     return {
-      error: validatedFields.error.flatten().fieldErrors.email?.[0] || validatedFields.error.flatten().fieldErrors.password?.[0] || 'Entrada inválida',
+      error: 'Token de autenticação inválido.',
     };
   }
 
-  const { email, password } = validatedFields.data;
+  const { idToken } = validatedFields.data;
   
   try {
-    // This part now communicates with the client-side auth, but the session creation is server-side.
-    // This is a simplified example. A more robust solution might involve client-side sign-in
-    // and then sending the ID token to the server to create a session cookie.
-    // For this step, we'll "find" the user in our mock DB to get the ID for session creation.
-    const user = findUserByEmail(email);
-    if (!user) {
-      return { error: 'Credenciais inválidas.' };
-    }
-    // We are not using the password from firebase auth yet, just creating the session cookie
-    await createSession(user.id);
-    redirect('/dashboard');
-
+    await createSession(idToken);
+    // Redirect is handled on the client-side after successful Firebase login
   } catch (error: any) {
-    // Handle Firebase Auth errors
-    if (error.code) {
-      switch (error.code) {
-        case 'auth/user-not-found':
-        case 'auth/wrong-password':
-        case 'auth/invalid-credential':
-          return { error: 'Credenciais inválidas.' };
-        default:
-          return { error: 'Ocorreu um erro. Tente novamente.' };
-      }
-    }
-    return { error: 'Ocorreu um erro desconhecido.' };
+    console.error("Session Login Error:", error);
+    return { error: 'Falha ao criar sessão. Tente novamente.' };
   }
+  // This needs to be outside the try/catch, as redirect() throws an error.
+  redirect('/dashboard');
 }
 
 export async function logout() {
@@ -101,12 +80,13 @@ export async function recordTimeLog(
   timestamp?: string // Optional: for offline sync
 ) {
   try {
-    const user = findUserById(userId);
+    const user = await findUserById(userId);
     if (!user) throw new Error('Usuário não encontrado.');
     if (!user.workPostId) throw new Error('Colaborador não está associado a um posto de trabalho.');
 
     // Step 1: Geolocation validation
-    const workPost = getWorkPosts().find(p => p.id === user.workPostId);
+    const allWorkPosts = await getWorkPosts();
+    const workPost = allWorkPosts.find(p => p.id === user.workPostId);
     if (!workPost || !workPost.latitude || !workPost.longitude || !workPost.radius) {
         throw new Error('Configuração de geolocalização do posto de trabalho está incompleta.');
     }
@@ -134,13 +114,15 @@ export async function recordTimeLog(
         return { success: false, message: `Validação falhou: ${validationResult.reason}` };
     }
 
-    // Step 3: Save the log
-    addTimeLog({
+    // Step 3: Save the photo and log
+    const photoUrl = await saveFile(submittedPhotoDataUri);
+    
+    await addTimeLog({
       userId,
       action,
       timestamp: timestamp || new Date().toISOString(),
       validation: validationResult,
-      photoUrl: submittedPhotoDataUri,
+      photoUrl: photoUrl,
       location: location || undefined,
     });
 
@@ -178,18 +160,21 @@ export async function createAnnouncement(formData: FormData) {
         return { error: 'Selecione um colaborador para um aviso individual.' };
     }
 
-    addAnnouncement(validatedFields.data);
+    await addAnnouncement(validatedFields.data);
     revalidatePath('/dashboard');
     return { success: true };
 }
 
 export async function removeAnnouncement(id: string) {
-    deleteAnnouncement(id);
+    await deleteAnnouncement(id);
     revalidatePath('/dashboard');
 }
 
 export async function uploadPayslip(userId: string, fileName: string) {
-    addPayslip({ userId, fileName });
+    // In a real app, the file would be uploaded here, and we'd get a URL.
+    // For now, we just record the metadata.
+    const mockFileUrl = `/payslips/${userId}/${fileName}`;
+    await addPayslip({ userId, fileName: fileName, fileUrl: mockFileUrl });
     revalidatePath('/dashboard');
     return { success: true, message: `Contracheque ${fileName} enviado com sucesso.` };
 }
@@ -197,7 +182,7 @@ export async function uploadPayslip(userId: string, fileName: string) {
 export async function editTimeLog(logId: string, newTimestamp: string) {
     if(!logId || !newTimestamp) return { error: 'Dados inválidos.' };
 
-    const updated = updateTimeLog(logId, newTimestamp);
+    const updated = await updateTimeLog(logId, newTimestamp);
     if (updated) {
         revalidatePath('/dashboard');
         return { success: true, message: 'Registro de ponto atualizado.' };
@@ -248,32 +233,34 @@ export async function saveCollaborator(formData: FormData) {
     }
 
     try {
-        let profilePhotoUrl = undefined;
+        let profilePhotoUrl: string | undefined = undefined;
+
         if (capturedPhoto) {
-            // If creating or editing and a new photo was captured, save it.
             profilePhotoUrl = await saveFile(capturedPhoto);
         } else if (profilePhoto) {
-            // If creating and a photo was uploaded, save it.
             profilePhotoUrl = await saveFile(profilePhoto);
         }
 
         const userData = { ...data, profilePhotoUrl };
 
         if (id) {
-            updateUser(id, userData);
+            await updateUser(id, userData);
         } else {
-            addUser(userData as any);
+            // addUser will create the user in Firebase Auth and Firestore
+            await addUser(userData as any);
         }
         revalidatePath('/dashboard');
         return { success: true, message: `Colaborador ${id ? 'atualizado' : 'criado'} com sucesso.` };
     } catch (error) {
-        return { error: 'Ocorreu um erro ao salvar o colaborador.' };
+        console.error(error);
+        const errorMessage = error instanceof Error ? error.message : 'Ocorreu um erro ao salvar o colaborador.';
+        return { error: errorMessage };
     }
 }
 
 export async function removeCollaborator(userId: string) {
     try {
-        deleteUser(userId);
+        await deleteUser(userId);
         revalidatePath('/dashboard');
         return { success: true, message: 'Colaborador removido com sucesso.' };
     } catch (error) {
@@ -309,9 +296,9 @@ export async function saveWorkPost(formData: FormData) {
 
     try {
         if (id) {
-            updateWorkPost(id, data);
+            await updateWorkPost(id, data);
         } else {
-            addWorkPost(data);
+            await addWorkPost(data);
         }
         revalidatePath('/dashboard');
         return { success: true, message: `Posto de trabalho ${id ? 'atualizado' : 'criado'} com sucesso.` };
@@ -322,7 +309,7 @@ export async function saveWorkPost(formData: FormData) {
 
 export async function removeWorkPost(workPostId: string) {
     try {
-        deleteWorkPost(workPostId);
+        await deleteWorkPost(workPostId);
         revalidatePath('/dashboard');
         return { success: true, message: 'Posto de trabalho removido com sucesso.' };
     } catch (error) {
@@ -359,9 +346,9 @@ export async function saveWorkShift(formData: FormData) {
     
     try {
         if (id) {
-            updateWorkShift(id, data);
+            await updateWorkShift(id, data);
         } else {
-            addWorkShift(data);
+            await addWorkShift(data);
         }
         revalidatePath('/dashboard');
         return { success: true, message: `Escala ${id ? 'atualizada' : 'criada'} com sucesso.` };
@@ -372,7 +359,7 @@ export async function saveWorkShift(formData: FormData) {
 
 export async function removeWorkShift(shiftId: string) {
     try {
-        removeDataWorkShift(shiftId);
+        await removeDataWorkShift(shiftId);
         revalidatePath('/dashboard');
         return { success: true, message: 'Escala removida com sucesso.' };
     } catch (error) {
@@ -387,7 +374,7 @@ export async function signMyTimeSheet(monthYear: string) {
     }
 
     try {
-        const signature = addSignature(user.id, monthYear);
+        const signature = await addSignature(user.id, monthYear);
         revalidatePath('/dashboard');
         return { success: true, signature, message: 'Ponto assinado com sucesso.' };
     } catch (error) {
@@ -423,7 +410,7 @@ export async function saveIndividualSchedule(formData: FormData) {
     }
 
     try {
-        updateUserSchedule(userId, schedule);
+        await updateUserSchedule(userId, schedule);
         revalidatePath('/dashboard');
         return { success: true };
     } catch (error) {
@@ -448,7 +435,7 @@ export async function saveBreakTime(formData: FormData) {
     const { userId, ...breakTimes } = validatedFields.data;
 
     try {
-        updateUser(userId, breakTimes);
+        await updateUser(userId, breakTimes);
         revalidatePath('/dashboard');
         return { success: true, message: 'Horário de intervalo atualizado com sucesso!' };
     } catch (error) {
@@ -478,7 +465,7 @@ export async function logOccurrence(prevState: any, formData: FormData) {
     }
     
     try {
-        addOccurrence(validatedFields.data);
+        await addOccurrence(validatedFields.data);
         revalidatePath('/dashboard');
         return { success: true, message: 'Ocorrência registrada com sucesso.' };
     } catch (error) {

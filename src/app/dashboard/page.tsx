@@ -14,18 +14,18 @@ export default async function DashboardPage() {
     redirect('/login');
   }
 
-  const allAnnouncements = getAnnouncements();
-  const currentMonthYear = format(new Date(), 'yyyy-MM');
-
-  const renderDashboard = (user: User) => {
+  const renderDashboard = async (user: User) => {
+    const allAnnouncements = await getAnnouncements();
+    const currentMonthYear = format(new Date(), 'yyyy-MM');
+    
     switch (user.role) {
       case 'admin':
-        const allUsers = getUsers();
-        const workPosts = getWorkPosts();
-        const workShifts = getWorkShifts();
-        const allTimeLogs = getAllTimeLogs();
-        const signatureStatus = getAllSignatures(currentMonthYear);
-        const occurrences = getOccurrences();
+        const allUsers = await getUsers();
+        const workPosts = await getWorkPosts();
+        const workShifts = await getWorkShifts();
+        const allTimeLogs = await getAllTimeLogs();
+        const signatureStatus = await getAllSignatures(currentMonthYear);
+        const occurrences = await getOccurrences();
         return <AdminDashboard 
                   user={user} 
                   announcements={allAnnouncements} 
@@ -37,11 +37,12 @@ export default async function DashboardPage() {
                   occurrences={occurrences}
                 />;
       case 'supervisor':
-        const allUsersForSupervisor = getUsers();
+        const allUsersForSupervisor = await getUsers();
         const teamMemberIds = user.team || [];
         const teamMembers = allUsersForSupervisor.filter(u => teamMemberIds.includes(u.id));
-        const allLogs = getAllTimeLogs();
-        const supervisedPosts = getWorkPosts().filter(p => p.supervisorId === user.id);
+        const allLogs = await getAllTimeLogs();
+        const allWorkposts = await getWorkPosts();
+        const supervisedPosts = allWorkposts.filter(p => p.supervisorId === user.id);
 
         const teamLogs = teamMembers.map(member => ({
             ...member,
@@ -55,9 +56,9 @@ export default async function DashboardPage() {
                   teamMembers={teamMembers}
                 />;
       case 'collaborator':
-        const timeLogs = getTimeLogsForUser(user.id).sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
-        const payslips = getPayslipsForUser(user.id);
-        const signature = getSignatureForUser(user.id, currentMonthYear);
+        const timeLogs = await getTimeLogsForUser(user.id);
+        const payslips = await getPayslipsForUser(user.id);
+        const signature = await getSignatureForUser(user.id, currentMonthYear);
         return <CollaboratorDashboard 
                   user={user} 
                   announcements={allAnnouncements} 
@@ -78,7 +79,7 @@ export default async function DashboardPage() {
            <p className="text-muted-foreground">{new Date().toLocaleDateString('pt-BR', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</p>
         </div>
       </div>
-      {renderDashboard(user)}
+      {await renderDashboard(user)}
     </div>
   );
 }
