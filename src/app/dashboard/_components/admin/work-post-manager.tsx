@@ -1,5 +1,6 @@
 'use client';
-import { useState } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
+import { GoogleMap, useJsApiLoader, Autocomplete, Circle, MarkerF } from '@react-google-maps/api';
 import { GlassCard, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/glass-card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -8,10 +9,21 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { useToast } from '@/hooks/use-toast';
 import { saveWorkPost, removeWorkPost } from '@/lib/actions';
 import type { WorkPost, User } from '@/lib/types';
-import { Briefcase, PlusCircle, UserCircle, Edit, Trash2 } from 'lucide-react';
+import { Briefcase, PlusCircle, UserCircle, Edit, Trash2, MapPin } from 'lucide-react';
 import { useFormStatus } from 'react-dom';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogClose } from '@/components/ui/dialog';
+import { Skeleton } from '@/components/ui/skeleton';
+
+const mapContainerStyle = {
+    height: '250px',
+    width: '100%',
+    borderRadius: '0.5rem',
+};
+
+const defaultCenter = { lat: -23.5505, lng: -46.6333 }; // Default to São Paulo
+
+const libraries: "places"[] = ["places"];
 
 function SubmitButton({ isEditing }: { isEditing: boolean }) {
     const { pending } = useFormStatus();
@@ -24,8 +36,59 @@ function SubmitButton({ isEditing }: { isEditing: boolean }) {
 
 function WorkPostForm({ workPost, supervisors, onFinished }: { workPost?: WorkPost | null; supervisors: User[]; onFinished: () => void }) {
     const { toast } = useToast();
+    const { isLoaded, loadError } = useJsApiLoader({
+        googleMapsApiKey: process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY!,
+        libraries,
+    });
+    
+    const [name, setName] = useState(workPost?.name || '');
+    const [address, setAddress] = useState(workPost?.address || '');
+    const [supervisorId, setSupervisorId] = useState(workPost?.supervisorId || 'none');
+    const [radius, setRadius] = useState(workPost?.radius || 100);
+    const [coordinates, setCoordinates] = useState<{ lat: number; lng: number } | null>(
+        workPost?.latitude && workPost.longitude ? { lat: workPost.latitude, lng: workPost.longitude } : null
+    );
+
+    const autocompleteRef = useRef<google.maps.places.Autocomplete | null>(null);
+
+    const handlePlaceSelect = useCallback(() => {
+        if (autocompleteRef.current) {
+            const place = autocompleteRef.current.getPlace();
+            if (place.geometry && place.geometry.location) {
+                const lat = place.geometry.location.lat();
+                const lng = place.geometry.location.lng();
+                setCoordinates({ lat, lng });
+                setAddress(place.formatted_address || '');
+            } else {
+                 toast({ variant: 'destructive', title: 'Endereço inválido', description: 'Por favor, selecione um endereço válido da lista.' });
+            }
+        }
+    }, [toast]);
+    
+    const onLoad = useCallback((autocomplete: google.maps.places.Autocomplete) => {
+        autocompleteRef.current = autocomplete;
+    }, []);
+
+    const onUnmount = useCallback(() => {
+        autocompleteRef.current = null;
+    }, []);
+
 
     const handleSubmit = async (formData: FormData) => {
+        if (!coordinates) {
+            toast({ variant: 'destructive', title: 'Localização necessária', description: 'Selecione um endereço válido para definir a localização do posto.' });
+            return;
+        }
+        
+        formData.set('name', name);
+        formData.set('address', address);
+        formData.set('supervisorId', supervisorId);
+        formData.set('radius', String(radius));
+        formData.set('latitude', String(coordinates.lat));
+        formData.set('longitude', String(coordinates.lng));
+        if(workPost?.id) formData.set('id', workPost.id);
+
+
         const result = await saveWorkPost(formData);
         if (result?.success) {
             toast({ title: 'Sucesso!', description: result.message });
@@ -35,20 +98,59 @@ function WorkPostForm({ workPost, supervisors, onFinished }: { workPost?: WorkPo
         }
     };
 
+    if (loadError) return <div>Erro ao carregar o mapa. Verifique a chave de API.</div>;
+    
     return (
         <form action={handleSubmit} className="space-y-4 pr-2">
-            <input type="hidden" name="id" value={workPost?.id || ''} />
             <div className="space-y-2">
                 <Label htmlFor="name">Nome do Posto</Label>
-                <Input id="name" name="name" placeholder="Ex: Sede, Cliente A" required defaultValue={workPost?.name} />
+                <Input id="name" value={name} onChange={e => setName(e.target.value)} placeholder="Ex: Sede, Cliente A" required />
             </div>
+            
+            {!isLoaded ? <Skeleton className="h-10 w-full" /> : (
+                 <div className="space-y-2">
+                    <Label htmlFor="address">Endereço</Label>
+                    <Autocomplete onLoad={onLoad} onUnmount={onUnmount} onPlaceChanged={handlePlaceSelect}>
+                         <Input id="address" value={address} onChange={e => setAddress(e.target.value)} placeholder="Digite e selecione o endereço..." required className="w-full" />
+                    </Autocomplete>
+                </div>
+            )}
+
             <div className="space-y-2">
-                <Label htmlFor="address">Endereço</Label>
-                <Input id="address" name="address" placeholder="Rua, número, cidade..." required defaultValue={workPost?.address} />
+                <Label htmlFor="radius">Raio do Ponto (metros)</Label>
+                <Input id="radius" type="number" value={radius} onChange={e => setRadius(Number(e.target.value))} required />
             </div>
+
+            <div style={mapContainerStyle} className="bg-muted flex items-center justify-center text-muted-foreground">
+                {!isLoaded ? <Skeleton className="h-full w-full" /> : 
+                    <GoogleMap
+                        mapContainerStyle={mapContainerStyle}
+                        center={coordinates || defaultCenter}
+                        zoom={coordinates ? 17 : 10}
+                    >
+                        {coordinates && (
+                            <>
+                                <MarkerF position={coordinates} />
+                                <Circle
+                                    center={coordinates}
+                                    radius={radius}
+                                    options={{
+                                        strokeColor: '#55ACEE',
+                                        strokeOpacity: 0.8,
+                                        strokeWeight: 2,
+                                        fillColor: '#55ACEE',
+                                        fillOpacity: 0.35,
+                                    }}
+                                />
+                            </>
+                        )}
+                    </GoogleMap>
+                }
+            </div>
+            
              <div className="space-y-2">
                 <Label htmlFor="supervisorId">Supervisor Responsável</Label>
-                <Select name="supervisorId" defaultValue={workPost?.supervisorId || 'none'}>
+                <Select value={supervisorId} onValueChange={setSupervisorId}>
                     <SelectTrigger>
                         <SelectValue placeholder="Selecione um supervisor" />
                     </SelectTrigger>
@@ -126,7 +228,10 @@ export function WorkPostManager({ initialWorkPosts, supervisors, allUsers }: Wor
                     <div key={post.id} className="p-3 bg-background/50 rounded-lg flex items-start justify-between">
                         <div>
                           <p className="font-medium text-sm">{post.name}</p>
-                          <p className="text-xs text-muted-foreground">{post.address}</p>
+                           <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                              <MapPin className="h-3 w-3" />
+                              <span>{post.address}</span>
+                          </div>
                           <div className="flex items-center gap-2 mt-1 text-xs text-muted-foreground">
                               <UserCircle className="h-4 w-4" />
                               <span>{getSupervisorName(post.supervisorId)}</span>
@@ -142,7 +247,10 @@ export function WorkPostManager({ initialWorkPosts, supervisors, allUsers }: Wor
         </ScrollArea>
       </CardContent>
 
-       <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
+       <Dialog open={isFormOpen} onOpenChange={(isOpen) => {
+          if(!isOpen) setEditingPost(null);
+          setIsFormOpen(isOpen);
+       }}>
             <DialogContent className="max-h-[90vh] flex flex-col p-0">
                 <DialogHeader className="p-6 pb-0">
                     <DialogTitle>{editingPost ? 'Editar Posto de Trabalho' : 'Novo Posto de Trabalho'}</DialogTitle>

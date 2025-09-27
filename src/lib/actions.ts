@@ -1,7 +1,7 @@
 'use server';
 
 import { createSession, deleteSession, getCurrentUser } from '@/lib/auth';
-import { findUserByEmail, addTimeLog, addAnnouncement, deleteAnnouncement, addPayslip, updateTimeLog, findUserById, addUser, updateUser, deleteUser, addWorkPost, addWorkShift, saveFile, addSignature, updateWorkPost, deleteWorkPost, updateWorkShift, removeWorkShift as removeDataWorkShift, updateUserSchedule, addOccurrence } from '@/lib/data';
+import { findUserByEmail, addTimeLog, addAnnouncement, deleteAnnouncement, addPayslip, updateTimeLog, findUserById, addUser, updateUser, deleteUser, addWorkPost, addWorkShift, saveFile, addSignature, updateWorkPost, deleteWorkPost, updateWorkShift, removeWorkShift as removeDataWorkShift, updateUserSchedule, addOccurrence, getWorkPosts } from '@/lib/data';
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import { z } from 'zod';
@@ -56,6 +56,25 @@ async function toDataURI(url: string): Promise<string> {
   return `data:${blob.type};base64,${base64}`;
 }
 
+// Haversine formula to calculate distance between two lat/lng points
+function getDistance(
+  location1: { latitude: number; longitude: number },
+  location2: { latitude: number; longitude: number }
+): number {
+  const R = 6371e3; // metres
+  const φ1 = (location1.latitude * Math.PI) / 180;
+  const φ2 = (location2.latitude * Math.PI) / 180;
+  const Δφ = ((location2.latitude - location1.latitude) * Math.PI) / 180;
+  const Δλ = ((location2.longitude - location1.longitude) * Math.PI) / 180;
+
+  const a =
+    Math.sin(Δφ / 2) * Math.sin(Δφ / 2) +
+    Math.cos(φ1) * Math.cos(φ2) * Math.sin(Δλ / 2) * Math.sin(Δλ / 2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+
+  return R * c; // in metres
+}
+
 export async function recordTimeLog(
   userId: string,
   action: TimeLogAction,
@@ -66,10 +85,24 @@ export async function recordTimeLog(
   try {
     const user = findUserById(userId);
     if (!user) throw new Error('Usuário não encontrado.');
+    if (!user.workPostId) throw new Error('Colaborador não está associado a um posto de trabalho.');
 
-    // Use profilePhotoDataUri if it's already on the user object, otherwise fetch it.
+    // Step 1: Geolocation validation
+    const workPost = getWorkPosts().find(p => p.id === user.workPostId);
+    if (!workPost || !workPost.latitude || !workPost.longitude || !workPost.radius) {
+        throw new Error('Configuração de geolocalização do posto de trabalho está incompleta.');
+    }
+    if (!location) {
+        throw new Error('Não foi possível obter sua localização atual.');
+    }
+
+    const distance = getDistance(location, { latitude: workPost.latitude, longitude: workPost.longitude });
+    if (distance > workPost.radius) {
+        return { success: false, message: `Você está a ${Math.round(distance)} metros do posto. Aproxime-se para registrar o ponto (limite: ${workPost.radius}m).`};
+    }
+
+    // Step 2: Facial Recognition
     const profilePhotoDataUri = user.profilePhotoDataUri || await toDataURI(user.profilePhotoUrl);
-
     if (!profilePhotoDataUri) {
       throw new Error('Não foi possível carregar a foto de perfil.');
     }
@@ -79,17 +112,17 @@ export async function recordTimeLog(
       submittedPhotoDataUri,
     });
 
-    // If validation fails, don't save the log, just return the reason.
     if (!validationResult.isValidated) {
         return { success: false, message: `Validação falhou: ${validationResult.reason}` };
     }
 
+    // Step 3: Save the log
     addTimeLog({
       userId,
       action,
       timestamp: timestamp || new Date().toISOString(),
       validation: validationResult,
-      photoUrl: submittedPhotoDataUri, // For display purposes
+      photoUrl: submittedPhotoDataUri,
       location: location || undefined,
     });
 
@@ -236,6 +269,9 @@ const workPostSchema = z.object({
     name: z.string().min(1, 'Nome é obrigatório.'),
     address: z.string().min(1, 'Endereço é obrigatório.'),
     supervisorId: z.string().optional(),
+    latitude: z.coerce.number(),
+    longitude: z.coerce.number(),
+    radius: z.coerce.number().min(1, 'Raio deve ser maior que zero.'),
 });
 
 
