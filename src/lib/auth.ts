@@ -4,12 +4,13 @@ import { findUserById } from './data';
 import type { User } from './types';
 
 const SESSION_COOKIE_NAME = 'bit_seguranca_session';
+const expiresIn = 60 * 60 * 24 * 5 * 1000; // 5 days
 
 export async function createSession(userId: string) {
   cookies().set(SESSION_COOKIE_NAME, userId, {
     httpOnly: true,
     secure: process.env.NODE_ENV === 'production',
-    maxAge: 60 * 60 * 24, // 24 hours
+    maxAge: expiresIn,
     path: '/',
   });
 }

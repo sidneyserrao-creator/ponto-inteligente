@@ -35,7 +35,6 @@ export function LoginForm() {
           type="email"
           placeholder="seu.email@bitsolucoes.com"
           required
-          defaultValue="ana.silva@bitsolucoes.com"
         />
       </div>
       <div className="space-y-2">
@@ -45,7 +44,6 @@ export function LoginForm() {
           name="password" 
           type="password" 
           required 
-          defaultValue="password123"
         />
       </div>
       
@@ -59,9 +57,6 @@ export function LoginForm() {
 
       <SubmitButton />
 
-      <p className="text-center text-xs text-muted-foreground pt-4">
-        Use um dos emails: ana.silva@ (admin), bruno.costa@ (supervisor), ou carlos.santos@ (colaborador) com qualquer senha.
-      </p>
     </form>
   );
 }
