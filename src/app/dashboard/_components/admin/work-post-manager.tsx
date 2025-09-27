@@ -23,7 +23,7 @@ const mapContainerStyle = {
 
 const defaultCenter = { lat: -23.5505, lng: -46.6333 }; // Default to São Paulo
 
-const libraries: "places"[] = ["places"];
+const libraries: ("places")[] = ["places"];
 
 function SubmitButton({ isEditing }: { isEditing: boolean }) {
     const { pending } = useFormStatus();
@@ -123,7 +123,7 @@ function WorkPostForm({ workPost, supervisors, onFinished }: { workPost?: WorkPo
     if (loadError) return <div>Erro ao carregar o mapa. Verifique a chave de API e se as APIs necessárias estão ativadas.</div>;
     
     return (
-        <form action={handleSubmit} className="space-y-4 pr-2">
+        <form action={handleSubmit} className="space-y-4 px-6">
             <div className="space-y-2">
                 <Label htmlFor="name">Nome do Posto</Label>
                 <Input id="name" value={name} onChange={e => setName(e.target.value)} placeholder="Ex: Sede, Cliente A" required />
@@ -186,7 +186,7 @@ function WorkPostForm({ workPost, supervisors, onFinished }: { workPost?: WorkPo
                 </Select>
             </div>
 
-             <DialogFooter className="sticky bottom-0 bg-background py-4 pr-4">
+             <DialogFooter className="sticky bottom-0 bg-background py-4 pr-0">
                 <DialogClose asChild><Button type="button" variant="outline">Cancelar</Button></DialogClose>
                 <SubmitButton isEditing={!!workPost} />
             </DialogFooter>
@@ -274,20 +274,16 @@ export function WorkPostManager({ initialWorkPosts, supervisors, allUsers }: Wor
           if(!isOpen) setEditingPost(null);
           setIsFormOpen(isOpen);
        }}>
-            <DialogContent className="max-h-[90vh] flex flex-col p-0">
-                <DialogHeader className="p-6 pb-0">
+            <DialogContent className="max-h-[90vh] flex flex-col p-0 scroll-container">
+                <DialogHeader className="p-6 pb-2 sticky top-0 bg-background z-10">
                     <DialogTitle>{editingPost ? 'Editar Posto de Trabalho' : 'Novo Posto de Trabalho'}</DialogTitle>
                     <DialogDescription>
                         {editingPost ? 'Altere os dados do posto de trabalho.' : 'Preencha os dados do novo posto de trabalho.'}
                     </DialogDescription>
                 </DialogHeader>
-                <ScrollArea className="flex-grow px-6">
-                    <WorkPostForm workPost={editingPost} supervisors={supervisors} onFinished={() => setIsFormOpen(false)} />
-                </ScrollArea>
+                <WorkPostForm workPost={editingPost} supervisors={supervisors} onFinished={() => setIsFormOpen(false)} />
             </DialogContent>
         </Dialog>
     </GlassCard>
   );
 }
-
-    
