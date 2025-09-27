@@ -1,7 +1,7 @@
 'use server';
 
 import { createSession, deleteSession, getCurrentUser } from '@/lib/auth';
-import { findUserByEmail, addTimeLog, addAnnouncement, deleteAnnouncement, addPayslip, updateTimeLog, findUserById, addUser, updateUser, deleteUser, addWorkPost, addWorkShift, saveFile, addSignature, updateWorkPost, deleteWorkPost, updateWorkShift, removeWorkShift as removeWorkShiftFromData, updateUserSchedule } from '@/lib/data';
+import { findUserByEmail, addTimeLog, addAnnouncement, deleteAnnouncement, addPayslip, updateTimeLog, findUserById, addUser, updateUser, deleteUser, addWorkPost, addWorkShift, saveFile, addSignature, updateWorkPost, deleteWorkPost, updateWorkShift, removeWorkShift as removeWorkShiftFromData, updateUserSchedule, addOccurrence } from '@/lib/data';
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import { z } from 'zod';
@@ -369,5 +369,35 @@ export async function saveBreakTime(formData: FormData) {
         return { success: true, message: 'Horário de intervalo atualizado com sucesso!' };
     } catch (error) {
         return { error: 'Ocorreu um erro ao salvar o horário de intervalo.' };
+    }
+}
+
+const occurrenceSchema = z.object({
+    userId: z.string().min(1, 'Colaborador é obrigatório.'),
+    date: z.string().min(1, 'Data é obrigatória.'),
+    type: z.enum(['justified_absence', 'medical_leave', 'vacation', 'unjustified_absence']),
+    description: z.string().min(1, 'Descrição é obrigatória.'),
+});
+
+export async function logOccurrence(prevState: any, formData: FormData) {
+    const rawData = {
+        userId: formData.get('userId'),
+        date: formData.get('date'),
+        type: formData.get('type'),
+        description: formData.get('description'),
+    };
+    
+    const validatedFields = occurrenceSchema.safeParse(rawData);
+
+    if (!validatedFields.success) {
+        return { error: 'Dados inválidos. Preencha todos os campos.' };
+    }
+    
+    try {
+        addOccurrence(validatedFields.data);
+        revalidatePath('/dashboard');
+        return { success: true, message: 'Ocorrência registrada com sucesso.' };
+    } catch (error) {
+        return { error: 'Ocorreu um erro ao registrar a ocorrência.' };
     }
 }

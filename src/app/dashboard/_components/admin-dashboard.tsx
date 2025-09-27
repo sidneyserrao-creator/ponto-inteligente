@@ -1,5 +1,5 @@
-import type { User, Announcement, WorkPost, TimeLog, Signature, WorkShift } from '@/lib/types';
-import { Announcements } from './announcements';
+import type { User, Announcement, WorkPost, TimeLog, Signature, WorkShift, Occurrence } from '@/lib/types';
+import { Announcements } from '../announcements';
 import { AnnouncementManager } from './admin/announcement-manager';
 import { DocumentManager } from './admin/document-manager';
 import { CollaboratorManager } from './admin/collaborator-manager';
@@ -10,6 +10,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
 import { WorkShiftManager } from './admin/work-shift-manager';
 import { IndividualScheduleManager } from './admin/individual-schedule-manager';
+import { OccurrenceManager } from './admin/occurrence-manager';
 
 interface AdminDashboardProps {
   user: User;
@@ -19,9 +20,10 @@ interface AdminDashboardProps {
   workShifts: WorkShift[];
   allTimeLogs: TimeLog[];
   signatureStatus: Record<string, Signature | null>;
+  occurrences: Occurrence[];
 }
 
-export function AdminDashboard({ user, announcements, allUsers, workPosts, workShifts, allTimeLogs, signatureStatus }: AdminDashboardProps) {
+export function AdminDashboard({ user, announcements, allUsers, workPosts, workShifts, allTimeLogs, signatureStatus, occurrences }: AdminDashboardProps) {
   const collaborators = allUsers.filter(u => u.role !== 'admin');
   const supervisors = allUsers.filter(u => u.role === 'supervisor');
 
@@ -34,6 +36,7 @@ export function AdminDashboard({ user, announcements, allUsers, workPosts, workS
             <TabsTrigger value="collaborators" className="w-full justify-start">Colaboradores</TabsTrigger>
             <TabsTrigger value="work-posts" className="w-full justify-start">Gestão de Postos</TabsTrigger>
             <TabsTrigger value="shifts" className="w-full justify-start">Escalas</TabsTrigger>
+            <TabsTrigger value="occurrences" className="w-full justify-start">Ocorrências</TabsTrigger>
             <TabsTrigger value="history" className="w-full justify-start">Histórico de Pontos</TabsTrigger>
             <TabsTrigger value="signed" className="w-full justify-start">Pontos Assinados</TabsTrigger>
           </TabsList>
@@ -68,6 +71,9 @@ export function AdminDashboard({ user, announcements, allUsers, workPosts, workS
               <IndividualScheduleManager allUsers={allUsers} workPosts={workPosts} />
               <WorkShiftManager initialWorkShifts={workShifts} />
             </div>
+        </TabsContent>
+        <TabsContent value="occurrences">
+          <OccurrenceManager allUsers={collaborators} initialOccurrences={occurrences} />
         </TabsContent>
         <TabsContent value="history">
             <TimeLogHistory allUsers={allUsers} allTimeLogs={allTimeLogs} />

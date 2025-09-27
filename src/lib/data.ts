@@ -1,4 +1,4 @@
-import type { User, TimeLog, Announcement, Payslip, WorkPost, WorkShift, Signature, WorkPostCreationData, WorkPostUpdateData, WorkShiftCreationData, WorkShiftUpdateData, IndividualSchedule } from '@/lib/types';
+import type { User, TimeLog, Announcement, Payslip, WorkPost, WorkShift, Signature, WorkPostCreationData, WorkPostUpdateData, WorkShiftCreationData, WorkShiftUpdateData, IndividualSchedule, Occurrence } from '@/lib/types';
 import { PlaceHolderImages } from './placeholder-images';
 import { format, startOfWeek, addDays } from 'date-fns';
 
@@ -117,6 +117,17 @@ let workShifts: WorkShift[] = [
 ];
 
 let signatures: Signature[] = [];
+
+let occurrences: Occurrence[] = [
+    {
+        id: `occ_${Date.now()}`,
+        userId: 'user_daniela',
+        date: format(addDays(new Date(), -1), 'yyyy-MM-dd'),
+        type: 'medical_leave',
+        description: 'Consulta médica de rotina.',
+        createdAt: new Date().toISOString(),
+    }
+];
 
 
 // Data access functions
@@ -325,4 +336,17 @@ export const updateUserSchedule = (userId: string, schedule: IndividualSchedule)
     // Merges the new schedule with the existing one
     users[userIndex].schedule = { ...users[userIndex].schedule, ...schedule };
     return users[userIndex];
+};
+
+// Occurrence functions
+export const getOccurrences = () => occurrences.sort((a,b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+
+export const addOccurrence = (occurrence: Omit<Occurrence, 'id' | 'createdAt'>): Occurrence => {
+    const newOccurrence: Occurrence = {
+        ...occurrence,
+        id: `occ_${Date.now()}`,
+        createdAt: new Date().toISOString(),
+    };
+    occurrences.push(newOccurrence);
+    return newOccurrence;
 };

@@ -89,6 +89,18 @@ export type DailyTimeLog = {
     totalHours: string;
 }
 
+export type OccurrenceType = 'justified_absence' | 'medical_leave' | 'vacation' | 'unjustified_absence';
+
+export type Occurrence = {
+  id: string;
+  userId: string;
+  date: string; // YYYY-MM-DD
+  type: OccurrenceType;
+  description: string;
+  createdAt: string;
+};
+
+
 export type WorkPostCreationData = Omit<WorkPost, 'id'>;
 export type WorkPostUpdateData = Partial<WorkPostCreationData>;
 
