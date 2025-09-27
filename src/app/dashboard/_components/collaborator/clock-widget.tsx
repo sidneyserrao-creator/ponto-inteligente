@@ -5,9 +5,10 @@ import { Button } from '@/components/ui/button';
 import { recordTimeLog } from '@/lib/actions';
 import { useToast } from '@/hooks/use-toast';
 import type { User, TimeLog, TimeLogAction } from '@/lib/types';
-import { Clock, Coffee, Play, LogOut, Loader2, Camera, ArrowLeft, Video, VideoOff } from 'lucide-react';
+import { Clock, Coffee, Play, LogOut, Loader2, Camera, ArrowLeft, Video, VideoOff, WifiOff } from 'lucide-react';
 import Image from 'next/image';
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
+import { addToSyncQueue, startSyncProcess } from '@/lib/sync';
 
 type ViewState = 'idle' | 'camera' | 'options';
 
@@ -22,14 +23,34 @@ export function ClockWidget({ user, timeLogs }: ClockWidgetProps) {
   const [currentTime, setCurrentTime] = useState(new Date());
   const [capturedImage, setCapturedImage] = useState<string | null>(null);
   const [hasCameraPermission, setHasCameraPermission] = useState<boolean | null>(null);
+  const [isOnline, setIsOnline] = useState(true);
 
   const videoRef = useRef<HTMLVideoElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
   const { toast } = useToast();
 
   useEffect(() => {
+    // Start the sync process when the component mounts
+    startSyncProcess();
+
     const timer = setInterval(() => setCurrentTime(new Date()), 1000);
-    return () => clearInterval(timer);
+    
+    const handleOnline = () => setIsOnline(true);
+    const handleOffline = () => setIsOnline(false);
+
+    if(typeof window !== 'undefined') {
+      setIsOnline(navigator.onLine);
+      window.addEventListener('online', handleOnline);
+      window.addEventListener('offline', handleOffline);
+    }
+    
+    return () => {
+      clearInterval(timer);
+      if(typeof window !== 'undefined') {
+        window.removeEventListener('online', handleOnline);
+        window.removeEventListener('offline', handleOffline);
+      }
+    };
   }, []);
 
   const startCamera = async () => {
@@ -90,6 +111,26 @@ export function ClockWidget({ user, timeLogs }: ClockWidgetProps) {
     if (!capturedImage) return;
 
     setIsProcessing(true);
+
+    if (!isOnline) {
+        try {
+            await addToSyncQueue(user.id, action, capturedImage);
+            toast({ 
+                title: 'Ponto registrado offline',
+                description: 'Seus dados serão enviados assim que a conexão for restabelecida.'
+            });
+            reset();
+        } catch (error) {
+            toast({
+                variant: 'destructive',
+                title: 'Erro ao salvar localmente',
+                description: 'Não foi possível salvar o registro de ponto offline.',
+            });
+            setIsProcessing(false);
+        }
+        return;
+    }
+
     const result = await recordTimeLog(user.id, action, capturedImage);
 
     if (result.success) {
@@ -132,7 +173,15 @@ export function ClockWidget({ user, timeLogs }: ClockWidgetProps) {
   return (
     <GlassCard>
       <CardHeader>
-        <CardTitle>Registro de Ponto</CardTitle>
+        <div className="flex justify-between items-center">
+            <CardTitle>Registro de Ponto</CardTitle>
+            {!isOnline && (
+                <div className="flex items-center gap-2 text-yellow-400 text-sm font-medium">
+                    <WifiOff className="h-5 w-5" />
+                    <span>Modo Offline</span>
+                </div>
+            )}
+        </div>
         <CardDescription>
             {view === 'idle' && `Bem-vindo(a), ${user.name.split(' ')[0]}. Clique abaixo para iniciar.`}
             {view === 'camera' && 'Posicione seu rosto na câmera e clique em Registrar.'}

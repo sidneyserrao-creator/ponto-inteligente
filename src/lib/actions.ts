@@ -59,7 +59,8 @@ async function toDataURI(url: string): Promise<string> {
 export async function recordTimeLog(
   userId: string,
   action: TimeLogAction,
-  submittedPhotoDataUri: string
+  submittedPhotoDataUri: string,
+  timestamp?: string // Optional: for offline sync
 ) {
   try {
     const user = findUserById(userId);
@@ -85,7 +86,7 @@ export async function recordTimeLog(
     addTimeLog({
       userId,
       action,
-      timestamp: new Date().toISOString(),
+      timestamp: timestamp || new Date().toISOString(),
       validation: validationResult,
       photoUrl: submittedPhotoDataUri, // For display purposes
     });
