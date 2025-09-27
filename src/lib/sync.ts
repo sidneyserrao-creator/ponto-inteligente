@@ -16,6 +16,7 @@ interface SyncDB extends DBSchema {
       action: TimeLogAction;
       capturedImage: string;
       timestamp: string;
+      location: { latitude: number; longitude: number } | null;
     };
   };
 }
@@ -38,13 +39,15 @@ const getDb = (): Promise<IDBPDatabase<SyncDB>> => {
 export const addToSyncQueue = async (
   userId: string,
   action: TimeLogAction,
-  capturedImage: string
+  capturedImage: string,
+  location: { latitude: number, longitude: number } | null
 ) => {
   const db = await getDb();
   await db.add(STORE_NAME, {
     userId,
     action,
     capturedImage,
+    location,
     timestamp: new Date().toISOString(),
   });
 };
@@ -69,6 +72,7 @@ const processSyncQueue = async () => {
           item.userId,
           item.action,
           item.capturedImage,
+          item.location,
           item.timestamp
         );
         if (result.success) {

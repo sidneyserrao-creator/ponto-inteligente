@@ -8,7 +8,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { useToast } from '@/hooks/use-toast';
 import { saveWorkPost, removeWorkPost } from '@/lib/actions';
 import type { WorkPost, User } from '@/lib/types';
-import { Briefcase, PlusCircle, UserCircle, Edit, Trash2, Loader2 } from 'lucide-react';
+import { Briefcase, PlusCircle, UserCircle, Edit, Trash2, Globe, MapPin, CircleDot } from 'lucide-react';
 import { useFormStatus } from 'react-dom';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogClose } from '@/components/ui/dialog';
@@ -24,6 +24,7 @@ function SubmitButton({ isEditing }: { isEditing: boolean }) {
 
 function WorkPostForm({ workPost, supervisors, onFinished }: { workPost?: WorkPost | null; supervisors: User[]; onFinished: () => void }) {
     const { toast } = useToast();
+    const [radius, setRadius] = useState(workPost?.radius || 100);
 
     const handleSubmit = async (formData: FormData) => {
         const result = await saveWorkPost(formData);
@@ -46,7 +47,7 @@ function WorkPostForm({ workPost, supervisors, onFinished }: { workPost?: WorkPo
                 <Label htmlFor="address">Endereço</Label>
                 <Input id="address" name="address" placeholder="Rua, número, cidade..." required defaultValue={workPost?.address} />
             </div>
-            <div className="space-y-2">
+             <div className="space-y-2">
                 <Label htmlFor="supervisorId">Supervisor Responsável</Label>
                 <Select name="supervisorId" defaultValue={workPost?.supervisorId || 'none'}>
                     <SelectTrigger>
@@ -60,6 +61,44 @@ function WorkPostForm({ workPost, supervisors, onFinished }: { workPost?: WorkPo
                     </SelectContent>
                 </Select>
             </div>
+
+            {/* Geolocation Fields */}
+            <div className="space-y-4 pt-4 border-t">
+                <div className="flex items-center gap-2 text-muted-foreground">
+                    <Globe className="h-5 w-5" />
+                    <h4 className="font-semibold text-foreground">Geolocalização (Opcional)</h4>
+                </div>
+                <p className="text-xs text-muted-foreground">
+                    Para validar a localização do colaborador, preencha a latitude, longitude e o raio permitido.
+                    Você pode obter as coordenadas de um endereço usando o Google Maps.
+                </p>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                        <Label htmlFor="latitude">Latitude</Label>
+                        <Input id="latitude" name="latitude" type="number" step="any" placeholder="-23.550520" defaultValue={workPost?.latitude} />
+                    </div>
+                    <div className="space-y-2">
+                        <Label htmlFor="longitude">Longitude</Label>
+                        <Input id="longitude" name="longitude" type="number" step="any" placeholder="-46.633308" defaultValue={workPost?.longitude} />
+                    </div>
+                </div>
+                <div className="space-y-2">
+                    <Label htmlFor="radius">Raio para Ponto (em metros)</Label>
+                    <Input id="radius" name="radius" type="number" placeholder="100" defaultValue={workPost?.radius || 100} onChange={(e) => setRadius(Number(e.target.value))} />
+                </div>
+                
+                 {/* Visual Placeholder for Map */}
+                 <div className="relative h-40 bg-muted rounded-lg flex items-center justify-center overflow-hidden">
+                    <MapPin className="h-10 w-10 text-primary opacity-30"/>
+                    <div 
+                        className="absolute bg-primary/20 border-2 border-dashed border-primary rounded-full"
+                        style={{ width: `${Math.min(radius, 400)/400 * 100}%`, height: `${Math.min(radius, 400)/400 * 100}%` }}
+                    />
+                    <div className="absolute h-2 w-2 bg-primary rounded-full" />
+                    <p className="absolute bottom-2 text-xs text-muted-foreground">Visualização do raio (não é um mapa real)</p>
+                </div>
+            </div>
+
              <DialogFooter>
                 <DialogClose asChild><Button type="button" variant="outline">Cancelar</Button></DialogClose>
                 <SubmitButton isEditing={!!workPost} />
@@ -115,14 +154,14 @@ export function WorkPostManager({ initialWorkPosts, supervisors, allUsers }: Wor
           </CardTitle>
           <Button onClick={handleAdd} size="sm"><PlusCircle className="mr-2 h-4 w-4" /> Novo Posto</Button>
         </div>
-        <CardDescription>Crie e gerencie os postos de trabalho.</CardDescription>
+        <CardDescription>Crie e gerencie os postos de trabalho e suas áreas de ponto.</CardDescription>
       </CardHeader>
       <CardContent>
         <h3 className="text-sm font-medium mb-2">Postos Atuais</h3>
         <ScrollArea className="h-60">
             <div className="space-y-2 pr-4">
                 {initialWorkPosts.map(post => (
-                    <div key={post.id} className="p-3 bg-background/50 rounded-lg flex items-center justify-between">
+                    <div key={post.id} className="p-3 bg-background/50 rounded-lg flex items-start justify-between">
                         <div>
                           <p className="font-medium text-sm">{post.name}</p>
                           <p className="text-xs text-muted-foreground">{post.address}</p>
@@ -130,8 +169,14 @@ export function WorkPostManager({ initialWorkPosts, supervisors, allUsers }: Wor
                               <UserCircle className="h-4 w-4" />
                               <span>{getSupervisorName(post.supervisorId)}</span>
                           </div>
+                           {post.radius && (
+                                <div className="flex items-center gap-2 mt-1 text-xs text-blue-400">
+                                    <CircleDot className="h-4 w-4" />
+                                    <span>Raio de {post.radius}m</span>
+                                </div>
+                            )}
                         </div>
-                        <div className="flex items-center">
+                        <div className="flex items-center -mt-2 -mr-2">
                             <Button variant="ghost" size="icon" onClick={() => handleEdit(post)}><Edit className="h-4 w-4" /></Button>
                             <Button variant="ghost" size="icon" onClick={() => handleDelete(post.id)}><Trash2 className="h-4 w-4 text-destructive" /></Button>
                         </div>
@@ -146,7 +191,7 @@ export function WorkPostManager({ initialWorkPosts, supervisors, allUsers }: Wor
                 <DialogHeader>
                     <DialogTitle>{editingPost ? 'Editar Posto de Trabalho' : 'Novo Posto de Trabalho'}</DialogTitle>
                     <DialogDescription>
-                        {editingPost ? 'Altere os dados do posto de trabalho.' : 'Preencha os dados do novo posto de trabalho.'}
+                        {editingPost ? 'Altere os dados do posto de trabalho e sua área de ponto.' : 'Preencha os dados do novo posto de trabalho.'}
                     </DialogDescription>
                 </DialogHeader>
                 <WorkPostForm workPost={editingPost} supervisors={supervisors} onFinished={() => setIsFormOpen(false)} />

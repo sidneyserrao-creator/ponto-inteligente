@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { recordTimeLog } from '@/lib/actions';
 import { useToast } from '@/hooks/use-toast';
 import type { User, TimeLog, TimeLogAction } from '@/lib/types';
-import { Clock, Coffee, Play, LogOut, Loader2, Camera, ArrowLeft, Video, VideoOff, WifiOff } from 'lucide-react';
+import { Clock, Coffee, Play, LogOut, Loader2, Camera, ArrowLeft, Video, VideoOff, WifiOff, MapPin } from 'lucide-react';
 import Image from 'next/image';
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
 import { addToSyncQueue, startSyncProcess } from '@/lib/sync';
@@ -22,6 +22,8 @@ export function ClockWidget({ user, timeLogs }: ClockWidgetProps) {
   const [isProcessing, setIsProcessing] = useState(false);
   const [currentTime, setCurrentTime] = useState(new Date());
   const [capturedImage, setCapturedImage] = useState<string | null>(null);
+  const [currentLocation, setCurrentLocation] = useState<{latitude: number, longitude: number} | null>(null);
+  const [locationError, setLocationError] = useState<string | null>(null);
   const [hasCameraPermission, setHasCameraPermission] = useState<boolean | null>(null);
   const [isOnline, setIsOnline] = useState(true);
 
@@ -52,6 +54,34 @@ export function ClockWidget({ user, timeLogs }: ClockWidgetProps) {
       }
     };
   }, []);
+
+  const requestLocationAndCamera = () => {
+    setLocationError(null);
+    // Request location
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        setCurrentLocation({
+          latitude: position.coords.latitude,
+          longitude: position.coords.longitude,
+        });
+        // If location is successful, open camera
+        setView('camera');
+      },
+      (error) => {
+        let message = 'Não foi possível obter sua localização. Ative o GPS e permita o acesso.';
+        if (error.code === error.PERMISSION_DENIED) {
+            message = 'Acesso à localização negado. Habilite a permissão nas configurações do navegador para registrar o ponto.'
+        }
+        setLocationError(message);
+        toast({
+          variant: 'destructive',
+          title: 'Erro de Localização',
+          description: message,
+        });
+      },
+      { enableHighAccuracy: true }
+    );
+  }
 
   const startCamera = async () => {
     if (streamRef.current) return;
@@ -114,7 +144,7 @@ export function ClockWidget({ user, timeLogs }: ClockWidgetProps) {
 
     if (!isOnline) {
         try {
-            await addToSyncQueue(user.id, action, capturedImage);
+            await addToSyncQueue(user.id, action, capturedImage, currentLocation);
             toast({ 
                 title: 'Ponto registrado offline',
                 description: 'Seus dados serão enviados assim que a conexão for restabelecida.'
@@ -131,7 +161,7 @@ export function ClockWidget({ user, timeLogs }: ClockWidgetProps) {
         return;
     }
 
-    const result = await recordTimeLog(user.id, action, capturedImage);
+    const result = await recordTimeLog(user.id, action, capturedImage, currentLocation);
 
     if (result.success) {
       toast({ title: 'Sucesso!', description: 'Ponto registrado.' });
@@ -150,6 +180,8 @@ export function ClockWidget({ user, timeLogs }: ClockWidgetProps) {
       setCapturedImage(null);
       setIsProcessing(false);
       setView('idle');
+      setCurrentLocation(null);
+      setLocationError(null);
   }
 
   const lastAction = timeLogs[0]?.action;
@@ -199,9 +231,18 @@ export function ClockWidget({ user, timeLogs }: ClockWidgetProps) {
         </div>
 
         {view === 'idle' && (
-          <Button onClick={() => setView('camera')} className="w-full max-w-sm">
-            <Camera className="mr-2 h-4 w-4" /> Bater Ponto
-          </Button>
+          <div className="w-full max-w-sm text-center space-y-4">
+            <Button onClick={requestLocationAndCamera} className="w-full">
+              <Camera className="mr-2 h-4 w-4" /> Bater Ponto
+            </Button>
+             {locationError && (
+                <Alert variant="destructive">
+                    <MapPin className="h-4 w-4" />
+                    <AlertTitle>Erro de Localização</AlertTitle>
+                    <AlertDescription>{locationError}</AlertDescription>
+                </Alert>
+            )}
+          </div>
         )}
 
         {view === 'camera' && (
