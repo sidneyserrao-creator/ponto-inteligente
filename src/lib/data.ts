@@ -1,4 +1,5 @@
-import { db, storage, auth as clientAuth } from './firebase';
+
+import { db as clientDb, storage as clientStorage, auth as clientAuth } from './firebase';
 import { 
     collection, 
     doc, 
@@ -13,6 +14,7 @@ import {
     Timestamp,
     DocumentData,
     QueryDocumentSnapshot,
+    setDoc
 } from 'firebase/firestore';
 import { 
     ref as storageRef, 
@@ -22,10 +24,10 @@ import {
 } from 'firebase/storage';
 import { createUserWithEmailAndPassword } from 'firebase/auth';
 import type { User, TimeLog, Announcement, Payslip, WorkPost, WorkShift, Signature, WorkPostCreationData, WorkPostUpdateData, WorkShiftCreationData, WorkShiftUpdateData, IndividualSchedule, Occurrence } from '@/lib/types';
-import { auth as adminAuth } from './firebase-admin';
+import { auth as adminAuth, db as adminDb } from './firebase-admin';
 
 // Helper to convert Firestore Timestamps
-const fromFirestore = <T>(snapshot: QueryDocumentSnapshot): T => {
+const fromFirestore = <T extends { id: string }>(snapshot: QueryDocumentSnapshot): T => {
     const data = snapshot.data({ serverTimestamps: 'estimate' }) as DocumentData;
     
     // Convert all Timestamp objects to ISO strings
@@ -45,7 +47,8 @@ const fromFirestore = <T>(snapshot: QueryDocumentSnapshot): T => {
 // --- User Functions ---
 
 export const findUserByEmail = async (email: string): Promise<User | null> => {
-    const q = query(collection(db, 'users'), where('email', '==', email));
+    if (!clientDb) return null;
+    const q = query(collection(clientDb, 'users'), where('email', '==', email));
     const querySnapshot = await getDocs(q);
     if (querySnapshot.empty) {
         return null;
@@ -54,7 +57,8 @@ export const findUserByEmail = async (email: string): Promise<User | null> => {
 };
 
 export const findUserById = async (id: string): Promise<User | null> => {
-    const docRef = doc(db, 'users', id);
+    if (!clientDb) return null;
+    const docRef = doc(clientDb, 'users', id);
     const docSnap = await getDoc(docRef);
     if (docSnap.exists()) {
         return fromFirestore<User>(docSnap as QueryDocumentSnapshot);
@@ -63,7 +67,8 @@ export const findUserById = async (id: string): Promise<User | null> => {
 };
 
 export const getUsers = async (): Promise<User[]> => {
-    const q = query(collection(db, 'users'), orderBy('name'));
+    if (!clientDb) return [];
+    const q = query(collection(clientDb, 'users'), orderBy('name'));
     const querySnapshot = await getDocs(q);
     return querySnapshot.docs.map(doc => fromFirestore<User>(doc));
 };
@@ -73,6 +78,7 @@ type UserCreationData = Omit<User, 'id' | 'passwordHash'> & {
 }
 
 export const addUser = async (data: UserCreationData) => {
+    if (!adminAuth || !adminDb) throw new Error('Firebase Admin SDK not initialized');
     if (!data.password || !data.email) {
         throw new Error("Email e senha são obrigatórios para criar um novo usuário.");
     }
@@ -89,18 +95,17 @@ export const addUser = async (data: UserCreationData) => {
     const { password, ...userData } = data;
     
     // Save user data to Firestore with the same UID
-    await addDoc(collection(db, 'users'), {
-        ...userData,
-        id: userRecord.uid
-    });
+    await setDoc(doc(adminDb, 'users', userRecord.uid), userData);
 };
 
 type UserUpdateData = Partial<Omit<User, 'id'>> & { password?: string; }
 export const updateUser = async (userId: string, data: UserUpdateData) => {
+    if (!adminAuth || !clientDb) throw new Error('Firebase SDKs not initialized');
+    
     const { password, ...userData } = data;
     
     // Update Firestore
-    const userDocRef = doc(db, 'users', userId);
+    const userDocRef = doc(clientDb, 'users', userId);
     await updateDoc(userDocRef, userData);
     
     // Update Firebase Auth if needed
@@ -116,23 +121,25 @@ export const updateUser = async (userId: string, data: UserUpdateData) => {
 };
 
 export const deleteUser = async (userId: string) => {
+    if (!adminAuth || !clientDb) throw new Error('Firebase SDKs not initialized');
     // Delete from Auth
     await adminAuth.deleteUser(userId);
     // Delete from Firestore
-    await deleteDoc(doc(db, 'users', userId));
+    await deleteDoc(doc(clientDb, 'users', userId));
 };
 
 
 // --- TimeLog Functions ---
 
 export const getTimeLogsForUser = async (userId: string): Promise<TimeLog[]> => {
+    if (!clientDb) return [];
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     const tomorrow = new Date(today);
     tomorrow.setDate(tomorrow.getDate() + 1);
 
     const q = query(
-        collection(db, 'timeLogs'), 
+        collection(clientDb, 'timeLogs'), 
         where('userId', '==', userId),
         where('timestamp', '>=', today.toISOString()),
         where('timestamp', '<', tomorrow.toISOString()),
@@ -143,17 +150,20 @@ export const getTimeLogsForUser = async (userId: string): Promise<TimeLog[]> => 
 };
 
 export const getAllTimeLogs = async (): Promise<TimeLog[]> => {
-    const q = query(collection(db, 'timeLogs'), orderBy('timestamp', 'desc'));
+    if (!clientDb) return [];
+    const q = query(collection(clientDb, 'timeLogs'), orderBy('timestamp', 'desc'));
     const querySnapshot = await getDocs(q);
     return querySnapshot.docs.map(doc => fromFirestore<TimeLog>(doc));
 };
 
 export const addTimeLog = async (log: Omit<TimeLog, 'id'>) => {
-    await addDoc(collection(db, 'timeLogs'), log);
+    if (!clientDb) throw new Error('Firestore not initialized');
+    await addDoc(collection(clientDb, 'timeLogs'), log);
 };
 
 export const updateTimeLog = async (logId: string, newTimestamp: string) => {
-    const logDocRef = doc(db, 'timeLogs', logId);
+    if (!clientDb) throw new Error('Firestore not initialized');
+    const logDocRef = doc(clientDb, 'timeLogs', logId);
     await updateDoc(logDocRef, {
         timestamp: newTimestamp,
         'validation.reason': 'Registro ajustado manualmente pelo supervisor.',
@@ -166,33 +176,38 @@ export const updateTimeLog = async (logId: string, newTimestamp: string) => {
 // --- Announcement Functions ---
 
 export const getAnnouncements = async (): Promise<Announcement[]> => {
-    const q = query(collection(db, 'announcements'), orderBy('createdAt', 'desc'));
+    if (!clientDb) return [];
+    const q = query(collection(clientDb, 'announcements'), orderBy('createdAt', 'desc'));
     const querySnapshot = await getDocs(q);
     return querySnapshot.docs.map(doc => fromFirestore<Announcement>(doc));
 };
 
 export const addAnnouncement = async (announcement: Omit<Announcement, 'id' | 'createdAt'>) => {
-    await addDoc(collection(db, 'announcements'), {
+    if (!clientDb) throw new Error('Firestore not initialized');
+    await addDoc(collection(clientDb, 'announcements'), {
         ...announcement,
         createdAt: new Date().toISOString()
     });
 };
 
 export const deleteAnnouncement = async (id: string) => {
-    await deleteDoc(doc(db, 'announcements', id));
+    if (!clientDb) throw new Error('Firestore not initialized');
+    await deleteDoc(doc(clientDb, 'announcements', id));
 };
 
 
 // --- Payslip Functions ---
 
 export const getPayslipsForUser = async (userId: string): Promise<Payslip[]> => {
-    const q = query(collection(db, 'payslips'), where('userId', '==', userId), orderBy('uploadDate', 'desc'));
+    if (!clientDb) return [];
+    const q = query(collection(clientDb, 'payslips'), where('userId', '==', userId), orderBy('uploadDate', 'desc'));
     const querySnapshot = await getDocs(q);
     return querySnapshot.docs.map(doc => fromFirestore<Payslip>(doc));
 };
 
 export const addPayslip = async (payslip: Omit<Payslip, 'id' | 'uploadDate'>) => {
-    await addDoc(collection(db, 'payslips'), {
+    if (!clientDb) throw new Error('Firestore not initialized');
+    await addDoc(collection(clientDb, 'payslips'), {
         ...payslip,
         uploadDate: new Date().toISOString()
     });
@@ -201,46 +216,56 @@ export const addPayslip = async (payslip: Omit<Payslip, 'id' | 'uploadDate'>) =>
 
 // --- WorkPost Functions ---
 export const getWorkPosts = async (): Promise<WorkPost[]> => {
-    const q = query(collection(db, 'workPosts'), orderBy('name'));
+    if (!clientDb) return [];
+    const q = query(collection(clientDb, 'workPosts'), orderBy('name'));
     const querySnapshot = await getDocs(q);
     return querySnapshot.docs.map(doc => fromFirestore<WorkPost>(doc));
 };
 
 export const addWorkPost = async (post: WorkPostCreationData) => {
-    await addDoc(collection(db, 'workPosts'), post);
+    if (!clientDb) throw new Error('Firestore not initialized');
+    await addDoc(collection(clientDb, 'workPosts'), post);
 };
 
 export const updateWorkPost = async (id: string, data: WorkPostUpdateData) => {
-    const postDocRef = doc(db, 'workPosts', id);
+    if (!clientDb) throw new Error('Firestore not initialized');
+    const postDocRef = doc(clientDb, 'workPosts', id);
     await updateDoc(postDocRef, data);
 };
 
 export const deleteWorkPost = async (id: string) => {
-    await deleteDoc(doc(db, 'workPosts', id));
+    if (!clientDb) throw new Error('Firestore not initialized');
+    await deleteDoc(doc(clientDb, 'workPosts', id));
 };
 
 // --- WorkShift Functions ---
 export const getWorkShifts = async (): Promise<WorkShift[]> => {
-    const q = query(collection(db, 'workShifts'), orderBy('name'));
+    if (!clientDb) return [];
+    const q = query(collection(clientDb, 'workShifts'), orderBy('name'));
     const querySnapshot = await getDocs(q);
     return querySnapshot.docs.map(doc => fromFirestore<WorkShift>(doc));
 };
 
 export const addWorkShift = async (shift: WorkShiftCreationData) => {
-    await addDoc(collection(db, 'workShifts'), shift);
+    if (!clientDb) throw new Error('Firestore not initialized');
+    await addDoc(collection(clientDb, 'workShifts'), shift);
 };
 
 export const updateWorkShift = async (id: string, data: WorkShiftUpdateData) => {
-    const shiftDocRef = doc(db, 'workShifts', id);
+    if (!clientDb) throw new Error('Firestore not initialized');
+    const shiftDocRef = doc(clientDb, 'workShifts', id);
     await updateDoc(shiftDocRef, data);
 };
 
 export const removeWorkShift = async (id: string) => {
-    await deleteDoc(doc(db, 'workShifts', id));
+    if (!clientDb) throw new Error('Firestore not initialized');
+    await deleteDoc(doc(clientDb, 'workShifts', id));
 };
 
 // --- File Storage ---
 export async function saveFile(fileOrDataUri: File | string): Promise<string> {
+    if (!clientStorage) throw new Error('Firebase Storage not initialized');
+
     let fileBuffer: Buffer;
     let fileType: string;
     let fileName: string;
@@ -258,7 +283,7 @@ export async function saveFile(fileOrDataUri: File | string): Promise<string> {
         fileName = `uploads/${Date.now()}_${fileOrDataUri.name}`;
     }
 
-    const fileStorageRef = storageRef(storage, fileName);
+    const fileStorageRef = storageRef(clientStorage, fileName);
     
     await uploadBytes(fileStorageRef, fileBuffer, { contentType: fileType });
     const downloadUrl = await getDownloadURL(fileStorageRef);
@@ -268,7 +293,8 @@ export async function saveFile(fileOrDataUri: File | string): Promise<string> {
 
 // --- Signature Functions ---
 export const getSignatureForUser = async (userId: string, monthYear: string): Promise<Signature | null> => {
-    const q = query(collection(db, 'signatures'), where('userId', '==', userId), where('monthYear', '==', monthYear));
+    if (!clientDb) return null;
+    const q = query(collection(clientDb, 'signatures'), where('userId', '==', userId), where('monthYear', '==', monthYear));
     const querySnapshot = await getDocs(q);
     if (querySnapshot.empty) {
         return null;
@@ -288,6 +314,7 @@ export const getAllSignatures = async (monthYear: string): Promise<Record<string
 };
 
 export const addSignature = async (userId: string, monthYear: string): Promise<Signature> => {
+    if (!clientDb) throw new Error('Firestore not initialized');
     const existing = await getSignatureForUser(userId, monthYear);
     if (existing) {
         throw new Error('Ponto já assinado para este mês.');
@@ -299,28 +326,31 @@ export const addSignature = async (userId: string, monthYear: string): Promise<S
         signedAt: new Date().toISOString(),
     };
     
-    const docRef = await addDoc(collection(db, 'signatures'), newSignature);
+    const docRef = await addDoc(collection(clientDb, 'signatures'), newSignature);
     return { id: docRef.id, ...newSignature };
 };
 
 // --- Individual Schedule Functions ---
 export const updateUserSchedule = async (userId: string, schedule: IndividualSchedule) => {
-    const userDocRef = doc(db, 'users', userId);
+    if (!clientDb) throw new Error('Firestore not initialized');
+    const userDocRef = doc(clientDb, 'users', userId);
     await updateDoc(userDocRef, { schedule });
 };
 
 // --- Occurrence Functions ---
 export const getOccurrences = async (): Promise<Occurrence[]> => {
-    const q = query(collection(db, 'occurrences'), orderBy('createdAt', 'desc'));
+    if (!clientDb) return [];
+    const q = query(collection(clientDb, 'occurrences'), orderBy('createdAt', 'desc'));
     const querySnapshot = await getDocs(q);
     return querySnapshot.docs.map(doc => fromFirestore<Occurrence>(doc));
 };
 
 export const addOccurrence = async (occurrence: Omit<Occurrence, 'id' | 'createdAt'>): Promise<Occurrence> => {
+    if (!clientDb) throw new Error('Firestore not initialized');
     const newOccurrence = {
         ...occurrence,
         createdAt: new Date().toISOString(),
     };
-    const docRef = await addDoc(collection(db, 'occurrences'), newOccurrence);
+    const docRef = await addDoc(collection(clientDb, 'occurrences'), newOccurrence);
     return { id: docRef.id, ...newOccurrence };
 };

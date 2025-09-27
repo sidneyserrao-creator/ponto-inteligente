@@ -1,3 +1,4 @@
+
 'use client';
 import { GlassCard, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/glass-card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -8,7 +9,6 @@ import type { User, TimeLog, Signature } from '@/lib/types';
 import { FileSignature, Download, Check, Hourglass, Loader2 } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { getAllTimeLogs } from '@/lib/data';
 import { TimeSheetDocument } from '../pdf/time-sheet-document';
 import { PDFDownloadLink } from '@react-pdf/renderer';
 import { useEffect, useState } from 'react';
@@ -16,9 +16,10 @@ import { useEffect, useState } from 'react';
 interface SignedTimeSheetsProps {
   collaborators: User[];
   signatureStatus: Record<string, Signature | null>;
+  allTimeLogs: TimeLog[];
 }
 
-export function SignedTimeSheets({ collaborators, signatureStatus }: SignedTimeSheetsProps) {
+export function SignedTimeSheets({ collaborators, signatureStatus, allTimeLogs }: SignedTimeSheetsProps) {
   const currentMonth = format(new Date(), "MMMM 'de' yyyy", { locale: ptBR });
   const [isClient, setIsClient] = useState(false);
 
@@ -27,9 +28,8 @@ export function SignedTimeSheets({ collaborators, signatureStatus }: SignedTimeS
   }, []);
 
   const getCollaboratorLogs = (userId: string) => {
-    const allLogs = getAllTimeLogs();
     const currentMonthYear = format(new Date(), 'yyyy-MM');
-    return allLogs.filter(log => log.userId === userId && log.timestamp.startsWith(currentMonthYear));
+    return allTimeLogs.filter(log => log.userId === userId && log.timestamp.startsWith(currentMonthYear));
   };
 
   const DownloadButton = ({ user, logs, signature }: { user: User, logs: TimeLog[], signature: Signature | null}) => {

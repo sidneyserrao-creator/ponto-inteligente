@@ -1,3 +1,4 @@
+
 import 'server-only';
 import { cookies } from 'next/headers';
 import { findUserById } from './data';
@@ -8,6 +9,7 @@ const SESSION_COOKIE_NAME = 'bit_seguranca_session';
 const expiresIn = 60 * 60 * 24 * 5 * 1000; // 5 days
 
 export async function createSession(idToken: string) {
+    if (!adminAuth) throw new Error('Firebase Admin SDK not initialized');
     const decodedIdToken = await adminAuth.verifyIdToken(idToken);
     
     // Only premium users can sign in to the dashboard.
@@ -25,6 +27,8 @@ export async function createSession(idToken: string) {
 
 
 export async function getSession(): Promise<{ uid: string } | null> {
+    if (!adminAuth) return null;
+
     const sessionCookie = cookies().get(SESSION_COOKIE_NAME);
     if (sessionCookie) {
         try {

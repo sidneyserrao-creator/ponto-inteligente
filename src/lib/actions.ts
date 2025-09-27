@@ -1,3 +1,4 @@
+
 'use server';
 
 import { createSession, deleteSession, getCurrentUser } from '@/lib/auth';
@@ -241,8 +242,11 @@ export async function saveCollaborator(formData: FormData) {
             profilePhotoUrl = await saveFile(profilePhoto);
         }
 
-        const userData = { ...data, profilePhotoUrl };
-
+        const userData: Partial<User> = { ...data };
+        if(profilePhotoUrl) {
+          userData.profilePhotoUrl = profilePhotoUrl
+        }
+        
         if (id) {
             await updateUser(id, userData);
         } else {

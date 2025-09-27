@@ -1,3 +1,4 @@
+
 import admin from 'firebase-admin';
 
 const firebaseConfig = {
@@ -20,6 +21,9 @@ if (!admin.apps.length && process.env.FIREBASE_PRIVATE_KEY && process.env.FIREBA
     });
 }
 
-export const auth = admin.auth();
-export const db = admin.firestore();
-export const storage = admin.storage();
+// Export initialized services only if the app exists
+const auth = admin.apps.length ? admin.auth() : null;
+const db = admin.apps.length ? admin.firestore() : null;
+const storage = admin.apps.length ? admin.storage() : null;
+
+export { auth, db, storage };
