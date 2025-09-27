@@ -45,6 +45,8 @@ export type Announcement = {
   title: string;
   content: string;
   createdAt: string;
+  target: 'all' | 'individual';
+  userId?: string;
 };
 
 export type Payslip = {

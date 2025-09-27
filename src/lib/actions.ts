@@ -100,15 +100,32 @@ export async function recordTimeLog(
   }
 }
 
-export async function createAnnouncement(formData: FormData) {
-    const title = formData.get('title') as string;
-    const content = formData.get('content') as string;
 
-    if (!title || !content) {
-        return { error: 'Título e conteúdo são obrigatórios.' };
+const announcementSchema = z.object({
+    title: z.string().min(1, 'Título é obrigatório.'),
+    content: z.string().min(1, 'Conteúdo é obrigatório.'),
+    target: z.enum(['all', 'individual']),
+    userId: z.string().optional(),
+});
+
+export async function createAnnouncement(formData: FormData) {
+    const rawData: any = Object.fromEntries(formData.entries());
+
+    if (rawData.target === 'all') {
+        delete rawData.userId;
+    }
+    
+    const validatedFields = announcementSchema.safeParse(rawData);
+
+    if (!validatedFields.success) {
+        return { error: 'Dados inválidos.' };
+    }
+    
+    if (validatedFields.data.target === 'individual' && !validatedFields.data.userId) {
+        return { error: 'Selecione um colaborador para um aviso individual.' };
     }
 
-    addAnnouncement({ title, content });
+    addAnnouncement(validatedFields.data);
     revalidatePath('/dashboard');
     return { success: true };
 }

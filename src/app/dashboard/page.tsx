@@ -14,7 +14,7 @@ export default async function DashboardPage() {
     redirect('/login');
   }
 
-  const announcements = getAnnouncements();
+  const allAnnouncements = getAnnouncements();
   const currentMonthYear = format(new Date(), 'yyyy-MM');
 
   const renderDashboard = (user: User) => {
@@ -28,7 +28,7 @@ export default async function DashboardPage() {
         const occurrences = getOccurrences();
         return <AdminDashboard 
                   user={user} 
-                  announcements={announcements} 
+                  announcements={allAnnouncements} 
                   allUsers={allUsers} 
                   workPosts={workPosts}
                   workShifts={workShifts}
@@ -49,7 +49,7 @@ export default async function DashboardPage() {
         }));
         return <SupervisorDashboard 
                   user={user} 
-                  announcements={announcements} 
+                  announcements={allAnnouncements} 
                   teamLogs={teamLogs} 
                   supervisedPosts={supervisedPosts}
                   teamMembers={teamMembers}
@@ -60,7 +60,7 @@ export default async function DashboardPage() {
         const signature = getSignatureForUser(user.id, currentMonthYear);
         return <CollaboratorDashboard 
                   user={user} 
-                  announcements={announcements} 
+                  announcements={allAnnouncements} 
                   timeLogs={timeLogs} 
                   payslips={payslips}
                   signature={signature}

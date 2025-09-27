@@ -88,12 +88,14 @@ let announcements: Announcement[] = [
     title: 'Feriado de Corpus Christi',
     content: 'Informamos que na próxima quinta-feira, não haverá expediente devido ao feriado nacional de Corpus Christi. As atividades retornam normalmente na sexta-feira.',
     createdAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
+    target: 'all',
   },
   {
     id: 'anno2',
     title: 'Atualização do Sistema de Ponto',
     content: 'O sistema de ponto eletrônico foi atualizado com novas funcionalidades. Explore o novo dashboard e reporte qualquer problema ao seu supervisor.',
     createdAt: new Date().toISOString(),
+    target: 'all',
   },
 ];
 

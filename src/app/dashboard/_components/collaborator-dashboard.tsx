@@ -35,7 +35,7 @@ export async function CollaboratorDashboard({ user, announcements, timeLogs, pay
       <div className="space-y-6">
         <MyScheduleWidget user={user} />
         <SignSheetWidget user={user} logs={timeLogs} initialSignature={signature} />
-        <Announcements announcements={announcements} />
+        <Announcements announcements={announcements} user={user} />
         <MyPayslips payslips={payslips} />
       </div>
     </div>

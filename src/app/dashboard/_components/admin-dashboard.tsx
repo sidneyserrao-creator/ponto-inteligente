@@ -47,8 +47,8 @@ export function AdminDashboard({ user, announcements, allUsers, workPosts, workS
         <TabsContent value="overview">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <div className="space-y-6">
-              <AnnouncementManager initialAnnouncements={announcements} />
-              <Announcements announcements={announcements} />
+              <AnnouncementManager initialAnnouncements={announcements} collaborators={collaborators} />
+              <Announcements announcements={announcements} user={user} />
             </div>
             <div>
               <DocumentManager collaborators={collaborators} />

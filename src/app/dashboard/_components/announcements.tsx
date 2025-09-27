@@ -3,15 +3,19 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Badge } from '@/components/ui/badge';
 import { format, formatDistanceToNow } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import type { Announcement as AnnouncementType } from '@/lib/types';
-import { Megaphone } from 'lucide-react';
+import type { Announcement as AnnouncementType, User } from '@/lib/types';
+import { Megaphone, User as UserIcon } from 'lucide-react';
 
 interface AnnouncementsProps {
   announcements: AnnouncementType[];
+  user: User;
 }
 
-export function Announcements({ announcements }: AnnouncementsProps) {
+export function Announcements({ announcements, user }: AnnouncementsProps) {
   const isNew = (date: string) => (new Date().getTime() - new Date(date).getTime()) < 3 * 24 * 60 * 60 * 1000;
+
+  // Filter announcements for the current user
+  const relevantAnnouncements = announcements.filter(a => a.target === 'all' || a.userId === user.id);
 
   return (
     <GlassCard>
@@ -24,7 +28,7 @@ export function Announcements({ announcements }: AnnouncementsProps) {
       <CardContent>
         <ScrollArea className="h-72">
           <div className="space-y-4 pr-4">
-            {announcements.map((announcement) => (
+            {relevantAnnouncements.map((announcement) => (
               <div key={announcement.id} className="p-4 bg-background/50 rounded-lg">
                 <div className="flex justify-between items-start">
                   <h3 className="font-semibold text-lg">{announcement.title}</h3>
@@ -36,9 +40,15 @@ export function Announcements({ announcements }: AnnouncementsProps) {
                   </div>
                 </div>
                 <p className="text-muted-foreground mt-1">{announcement.content}</p>
+                {announcement.target === 'individual' && (
+                    <div className="flex items-center gap-1 text-xs text-primary mt-2">
+                        <UserIcon className="h-3 w-3"/>
+                        <span>Aviso individual</span>
+                    </div>
+                )}
               </div>
             ))}
-             {announcements.length === 0 && (
+             {relevantAnnouncements.length === 0 && (
               <p className="text-center text-muted-foreground py-10">
                 Nenhum aviso no momento.
               </p>
