@@ -25,7 +25,7 @@ import {
 import { createUserWithEmailAndPassword } from 'firebase/auth';
 import type { User, TimeLog, Announcement, Payslip, WorkPost, WorkShift, Signature, WorkPostCreationData, WorkPostUpdateData, WorkShiftCreationData, WorkShiftUpdateData, IndividualSchedule, Occurrence } from '@/lib/types';
 import admin from 'firebase-admin';
-import { auth as adminAuth, db as adminDb } from './firebase-admin';
+import { auth as adminAuth, db as adminDb, storage as adminStorage } from './firebase-admin';
 
 // Helper to convert Firestore Timestamps from Admin SDK
 const fromAdminFirestore = <T extends { id: string }>(snapshot: admin.firestore.DocumentSnapshot): T => {
@@ -156,14 +156,14 @@ export const getAllTimeLogs = async (): Promise<TimeLog[]> => {
 };
 
 export const addTimeLog = async (log: Omit<TimeLog, 'id'>) => {
-    if (!clientDb) throw new Error('Firestore not initialized');
-    await addDoc(collection(clientDb, 'timeLogs'), log);
+    if (!adminDb) throw new Error('Firestore not initialized');
+    await adminDb.collection('timeLogs').add(log);
 };
 
 export const updateTimeLog = async (logId: string, newTimestamp: string) => {
-    if (!clientDb) throw new Error('Firestore not initialized');
-    const logDocRef = doc(clientDb, 'timeLogs', logId);
-    await updateDoc(logDocRef, {
+    if (!adminDb) throw new Error('Firestore not initialized');
+    const logDocRef = adminDb.collection('timeLogs').doc(logId);
+    await logDocRef.update({
         timestamp: newTimestamp,
         'validation.reason': 'Registro ajustado manualmente pelo supervisor.',
         'validation.confidence': 1.0,
@@ -182,16 +182,16 @@ export const getAnnouncements = async (): Promise<Announcement[]> => {
 };
 
 export const addAnnouncement = async (announcement: Omit<Announcement, 'id' | 'createdAt'>) => {
-    if (!clientDb) throw new Error('Firestore not initialized');
-    await addDoc(collection(clientDb, 'announcements'), {
+    if (!adminDb) throw new Error('Firestore not initialized');
+    await adminDb.collection('announcements').add({
         ...announcement,
         createdAt: new Date().toISOString()
     });
 };
 
 export const deleteAnnouncement = async (id: string) => {
-    if (!clientDb) throw new Error('Firestore not initialized');
-    await deleteDoc(doc(clientDb, 'announcements', id));
+    if (!adminDb) throw new Error('Firestore not initialized');
+    await adminDb.collection('announcements').doc(id).delete();
 };
 
 
@@ -205,8 +205,8 @@ export const getPayslipsForUser = async (userId: string): Promise<Payslip[]> => 
 };
 
 export const addPayslip = async (payslip: Omit<Payslip, 'id' | 'uploadDate'>) => {
-    if (!clientDb) throw new Error('Firestore not initialized');
-    await addDoc(collection(clientDb, 'payslips'), {
+    if (!adminDb) throw new Error('Firestore not initialized');
+    await adminDb.collection('payslips').add({
         ...payslip,
         uploadDate: new Date().toISOString()
     });
@@ -222,19 +222,19 @@ export const getWorkPosts = async (): Promise<WorkPost[]> => {
 };
 
 export const addWorkPost = async (post: WorkPostCreationData) => {
-    if (!clientDb) throw new Error('Firestore not initialized');
-    await addDoc(collection(clientDb, 'workPosts'), post);
+    if (!adminDb) throw new Error('Firestore not initialized');
+    await adminDb.collection('workPosts').add(post);
 };
 
 export const updateWorkPost = async (id: string, data: WorkPostUpdateData) => {
-    if (!clientDb) throw new Error('Firestore not initialized');
-    const postDocRef = doc(clientDb, 'workPosts', id);
-    await updateDoc(postDocRef, data);
+    if (!adminDb) throw new Error('Firestore not initialized');
+    const postDocRef = adminDb.collection('workPosts').doc(id);
+    await postDocRef.update(data);
 };
 
 export const deleteWorkPost = async (id: string) => {
-    if (!clientDb) throw new Error('Firestore not initialized');
-    await deleteDoc(doc(clientDb, 'workPosts', id));
+    if (!adminDb) throw new Error('Firestore not initialized');
+    await adminDb.collection('workPosts').doc(id).delete();
 };
 
 // --- WorkShift Functions ---
@@ -246,25 +246,26 @@ export const getWorkShifts = async (): Promise<WorkShift[]> => {
 };
 
 export const addWorkShift = async (shift: WorkShiftCreationData) => {
-    if (!clientDb) throw new Error('Firestore not initialized');
-    await addDoc(collection(clientDb, 'workShifts'), shift);
+    if (!adminDb) throw new Error('Firestore not initialized');
+    await adminDb.collection('workShifts').add(shift);
 };
 
 export const updateWorkShift = async (id: string, data: WorkShiftUpdateData) => {
-    if (!clientDb) throw new Error('Firestore not initialized');
-    const shiftDocRef = doc(clientDb, 'workShifts', id);
-    await updateDoc(shiftDocRef, data);
+    if (!adminDb) throw new Error('Firestore not initialized');
+    const shiftDocRef = adminDb.collection('workShifts').doc(id);
+    await shiftDocRef.update(data);
 };
 
 export const removeWorkShift = async (id: string) => {
-    if (!clientDb) throw new Error('Firestore not initialized');
-    await deleteDoc(doc(clientDb, 'workShifts', id));
+    if (!adminDb) throw new Error('Firestore not initialized');
+    await adminDb.collection('workShifts').doc(id).delete();
 };
 
 // --- File Storage ---
 export async function saveFile(fileOrDataUri: File | string): Promise<string> {
-    if (!clientStorage) throw new Error('Firebase Storage not initialized');
+    if (!adminStorage) throw new Error('Firebase Admin Storage not initialized');
 
+    const bucket = adminStorage.bucket();
     let fileBuffer: Buffer;
     let fileType: string;
     let fileName: string;
@@ -282,12 +283,22 @@ export async function saveFile(fileOrDataUri: File | string): Promise<string> {
         fileName = `uploads/${Date.now()}_${fileOrDataUri.name}`;
     }
 
-    const fileStorageRef = storageRef(clientStorage, fileName);
+    const file = bucket.file(fileName);
+
+    await file.save(fileBuffer, {
+        metadata: {
+            contentType: fileType,
+        },
+    });
+
+    // Firebase Admin SDK getSignedUrl is complex. A simpler way for public files is to construct the URL.
+    // This assumes the bucket is public or has public-read enabled via rules.
+    const publicUrl = `https://storage.googleapis.com/${bucket.name}/${fileName}`;
     
-    await uploadBytes(fileStorageRef, fileBuffer, { contentType: fileType });
-    const downloadUrl = await getDownloadURL(fileStorageRef);
-    
-    return downloadUrl;
+    // To make it truly accessible, we need to make the file public.
+    await file.makePublic();
+
+    return publicUrl;
 }
 
 // --- Signature Functions ---
@@ -313,7 +324,7 @@ export const getAllSignatures = async (monthYear: string): Promise<Record<string
 };
 
 export const addSignature = async (userId: string, monthYear: string): Promise<Signature> => {
-    if (!clientDb) throw new Error('Firestore not initialized');
+    if (!adminDb) throw new Error('Firestore not initialized');
     const existing = await getSignatureForUser(userId, monthYear);
     if (existing) {
         throw new Error('Ponto já assinado para este mês.');
@@ -325,15 +336,15 @@ export const addSignature = async (userId: string, monthYear: string): Promise<S
         signedAt: new Date().toISOString(),
     };
     
-    const docRef = await addDoc(collection(clientDb, 'signatures'), newSignature);
+    const docRef = await adminDb.collection('signatures').add(newSignature);
     return { id: docRef.id, ...newSignature };
 };
 
 // --- Individual Schedule Functions ---
 export const updateUserSchedule = async (userId: string, schedule: IndividualSchedule) => {
-    if (!clientDb) throw new Error('Firestore not initialized');
-    const userDocRef = doc(clientDb, 'users', userId);
-    await updateDoc(userDocRef, { schedule });
+    if (!adminDb) throw new Error('Firestore not initialized');
+    const userDocRef = adminDb.collection('users').doc(userId);
+    await userDocRef.update({ schedule });
 };
 
 // --- Occurrence Functions ---
@@ -345,12 +356,12 @@ export const getOccurrences = async (): Promise<Occurrence[]> => {
 };
 
 export const addOccurrence = async (occurrence: Omit<Occurrence, 'id' | 'createdAt'>): Promise<Occurrence> => {
-    if (!clientDb) throw new Error('Firestore not initialized');
+    if (!adminDb) throw new Error('Firestore not initialized');
     const newOccurrence = {
         ...occurrence,
         createdAt: new Date().toISOString(),
     };
-    const docRef = await addDoc(collection(clientDb, 'occurrences'), newOccurrence);
+    const docRef = await adminDb.collection('occurrences').add(newOccurrence);
     return { id: docRef.id, ...newOccurrence };
 };
 
