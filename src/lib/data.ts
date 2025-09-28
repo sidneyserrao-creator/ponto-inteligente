@@ -24,11 +24,12 @@ import {
 } from 'firebase/storage';
 import { createUserWithEmailAndPassword } from 'firebase/auth';
 import type { User, TimeLog, Announcement, Payslip, WorkPost, WorkShift, Signature, WorkPostCreationData, WorkPostUpdateData, WorkShiftCreationData, WorkShiftUpdateData, IndividualSchedule, Occurrence } from '@/lib/types';
+import admin from 'firebase-admin';
 import { auth as adminAuth, db as adminDb } from './firebase-admin';
 
 // Helper to convert Firestore Timestamps from Admin SDK
-const fromAdminFirestore = <T extends { id: string }>(snapshot: admin.firestore.QueryDocumentSnapshot): T => {
-    const data = snapshot.data();
+const fromAdminFirestore = <T extends { id: string }>(snapshot: admin.firestore.DocumentSnapshot): T => {
+    const data = snapshot.data()!;
     
     // Convert all Timestamp objects to ISO strings
     for (const key in data) {
@@ -60,7 +61,7 @@ export const findUserById = async (id: string): Promise<User | null> => {
     const docRef = adminDb.collection('users').doc(id);
     const docSnap = await docRef.get();
     if (docSnap.exists) {
-        return fromAdminFirestore<User>(docSnap as admin.firestore.QueryDocumentSnapshot);
+        return fromAdminFirestore<User>(docSnap);
     }
     return null;
 };
@@ -352,5 +353,7 @@ export const addOccurrence = async (occurrence: Omit<Occurrence, 'id' | 'created
     const docRef = await addDoc(collection(clientDb, 'occurrences'), newOccurrence);
     return { id: docRef.id, ...newOccurrence };
 };
+
+    
 
     
