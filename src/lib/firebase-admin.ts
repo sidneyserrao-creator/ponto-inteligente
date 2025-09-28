@@ -1,29 +1,17 @@
 
 import admin from 'firebase-admin';
 
-const firebaseConfig = {
-  apiKey: "AIzaSyBkyL6tVZ9lfep3mAyfnGAjLx407bjg8Rw",
-  authDomain: "studio-2096480918-e97c7.firebaseapp.com",
-  projectId: "studio-2096480918-e97c7",
-  storageBucket: "studio-2096480918-e97c7.firebasestorage.app",
-  messagingSenderId: "319012964573",
-  appId: "1:319012964573:web:aa3c611d6fe930ba82f334"
-};
-
-// Check if the required environment variables are set before initializing.
-if (!admin.apps.length && process.env.FIREBASE_PRIVATE_KEY && process.env.FIREBASE_CLIENT_EMAIL) {
-    admin.initializeApp({
-        credential: admin.credential.cert({
-            projectId: firebaseConfig.projectId,
-            clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
-            privateKey: process.env.FIREBASE_PRIVATE_KEY.replace(/\\n/g, '\n'),
-        }),
-    });
+// Verifica se o Firebase jÃ¡ foi inicializado para evitar erros.
+if (!admin.apps.length) {
+  // Inicializa o Firebase Admin SDK.
+  // Em ambientes Google Cloud (como este), ele usa automaticamente
+  // as credenciais do ambiente, o que Ã© mais seguro e simples.
+  admin.initializeApp();
 }
 
-// Export initialized services only if the app exists
-const auth = admin.apps.length ? admin.auth() : null;
-const db = admin.apps.length ? admin.firestore() : null;
-const storage = admin.apps.length ? admin.storage() : null;
+// Exporta os serviÃ§os do Firebase jÃ¡ inicializados.
+const auth = admin.auth();
+const db = admin.firestore();
+const storage = admin.storage();
 
 export { auth, db, storage };
