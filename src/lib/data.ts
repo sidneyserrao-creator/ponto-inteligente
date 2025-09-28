@@ -26,13 +26,13 @@ import { createUserWithEmailAndPassword } from 'firebase/auth';
 import type { User, TimeLog, Announcement, Payslip, WorkPost, WorkShift, Signature, WorkPostCreationData, WorkPostUpdateData, WorkShiftCreationData, WorkShiftUpdateData, IndividualSchedule, Occurrence } from '@/lib/types';
 import { auth as adminAuth, db as adminDb } from './firebase-admin';
 
-// Helper to convert Firestore Timestamps
-const fromFirestore = <T extends { id: string }>(snapshot: QueryDocumentSnapshot): T => {
-    const data = snapshot.data({ serverTimestamps: 'estimate' }) as DocumentData;
+// Helper to convert Firestore Timestamps from Admin SDK
+const fromAdminFirestore = <T extends { id: string }>(snapshot: admin.firestore.QueryDocumentSnapshot): T => {
+    const data = snapshot.data();
     
     // Convert all Timestamp objects to ISO strings
     for (const key in data) {
-        if (data[key] instanceof Timestamp) {
+        if (data[key] instanceof admin.firestore.Timestamp) {
             data[key] = data[key].toDate().toISOString();
         }
     }
@@ -43,34 +43,33 @@ const fromFirestore = <T extends { id: string }>(snapshot: QueryDocumentSnapshot
     } as T;
 };
 
-
 // --- User Functions ---
 
 export const findUserByEmail = async (email: string): Promise<User | null> => {
-    if (!clientDb) return null;
-    const q = query(collection(clientDb, 'users'), where('email', '==', email));
-    const querySnapshot = await getDocs(q);
+    if (!adminDb) return null;
+    const q = adminDb.collection('users').where('email', '==', email);
+    const querySnapshot = await q.get();
     if (querySnapshot.empty) {
         return null;
     }
-    return fromFirestore<User>(querySnapshot.docs[0]);
+    return fromAdminFirestore<User>(querySnapshot.docs[0]);
 };
 
 export const findUserById = async (id: string): Promise<User | null> => {
-    if (!clientDb) return null;
-    const docRef = doc(clientDb, 'users', id);
-    const docSnap = await getDoc(docRef);
-    if (docSnap.exists()) {
-        return fromFirestore<User>(docSnap as QueryDocumentSnapshot);
+    if (!adminDb) return null;
+    const docRef = adminDb.collection('users').doc(id);
+    const docSnap = await docRef.get();
+    if (docSnap.exists) {
+        return fromAdminFirestore<User>(docSnap as admin.firestore.QueryDocumentSnapshot);
     }
     return null;
 };
 
 export const getUsers = async (): Promise<User[]> => {
-    if (!clientDb) return [];
-    const q = query(collection(clientDb, 'users'), orderBy('name'));
-    const querySnapshot = await getDocs(q);
-    return querySnapshot.docs.map(doc => fromFirestore<User>(doc));
+    if (!adminDb) return [];
+    const q = adminDb.collection('users').orderBy('name');
+    const querySnapshot = await q.get();
+    return querySnapshot.docs.map(doc => fromAdminFirestore<User>(doc));
 };
 
 type UserCreationData = Omit<User, 'id' | 'passwordHash'> & {
@@ -95,18 +94,18 @@ export const addUser = async (data: UserCreationData) => {
     const { password, ...userData } = data;
     
     // Save user data to Firestore with the same UID
-    await setDoc(doc(adminDb, 'users', userRecord.uid), userData);
+    await adminDb.collection('users').doc(userRecord.uid).set(userData);
 };
 
 type UserUpdateData = Partial<Omit<User, 'id'>> & { password?: string; }
 export const updateUser = async (userId: string, data: UserUpdateData) => {
-    if (!adminAuth || !clientDb) throw new Error('Firebase SDKs not initialized');
+    if (!adminAuth || !adminDb) throw new Error('Firebase SDKs not initialized');
     
     const { password, ...userData } = data;
     
     // Update Firestore
-    const userDocRef = doc(clientDb, 'users', userId);
-    await updateDoc(userDocRef, userData);
+    const userDocRef = adminDb.collection('users').doc(userId);
+    await userDocRef.update(userData);
     
     // Update Firebase Auth if needed
     const authUpdatePayload: any = {};
@@ -121,39 +120,38 @@ export const updateUser = async (userId: string, data: UserUpdateData) => {
 };
 
 export const deleteUser = async (userId: string) => {
-    if (!adminAuth || !clientDb) throw new Error('Firebase SDKs not initialized');
+    if (!adminAuth || !adminDb) throw new Error('Firebase SDKs not initialized');
     // Delete from Auth
     await adminAuth.deleteUser(userId);
     // Delete from Firestore
-    await deleteDoc(doc(clientDb, 'users', userId));
+    await adminDb.collection('users').doc(userId).delete();
 };
 
 
 // --- TimeLog Functions ---
 
 export const getTimeLogsForUser = async (userId: string): Promise<TimeLog[]> => {
-    if (!clientDb) return [];
+    if (!adminDb) return [];
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     const tomorrow = new Date(today);
     tomorrow.setDate(tomorrow.getDate() + 1);
 
-    const q = query(
-        collection(clientDb, 'timeLogs'), 
-        where('userId', '==', userId),
-        where('timestamp', '>=', today.toISOString()),
-        where('timestamp', '<', tomorrow.toISOString()),
-        orderBy('timestamp', 'desc')
-    );
-    const querySnapshot = await getDocs(q);
-    return querySnapshot.docs.map(doc => fromFirestore<TimeLog>(doc));
+    const q = adminDb.collection('timeLogs')
+        .where('userId', '==', userId)
+        .where('timestamp', '>=', today.toISOString())
+        .where('timestamp', '<', tomorrow.toISOString())
+        .orderBy('timestamp', 'desc');
+        
+    const querySnapshot = await q.get();
+    return querySnapshot.docs.map(doc => fromAdminFirestore<TimeLog>(doc));
 };
 
 export const getAllTimeLogs = async (): Promise<TimeLog[]> => {
-    if (!clientDb) return [];
-    const q = query(collection(clientDb, 'timeLogs'), orderBy('timestamp', 'desc'));
-    const querySnapshot = await getDocs(q);
-    return querySnapshot.docs.map(doc => fromFirestore<TimeLog>(doc));
+    if (!adminDb) return [];
+    const q = adminDb.collection('timeLogs').orderBy('timestamp', 'desc');
+    const querySnapshot = await q.get();
+    return querySnapshot.docs.map(doc => fromAdminFirestore<TimeLog>(doc));
 };
 
 export const addTimeLog = async (log: Omit<TimeLog, 'id'>) => {
@@ -176,10 +174,10 @@ export const updateTimeLog = async (logId: string, newTimestamp: string) => {
 // --- Announcement Functions ---
 
 export const getAnnouncements = async (): Promise<Announcement[]> => {
-    if (!clientDb) return [];
-    const q = query(collection(clientDb, 'announcements'), orderBy('createdAt', 'desc'));
-    const querySnapshot = await getDocs(q);
-    return querySnapshot.docs.map(doc => fromFirestore<Announcement>(doc));
+    if (!adminDb) return [];
+    const q = adminDb.collection('announcements').orderBy('createdAt', 'desc');
+    const querySnapshot = await q.get();
+    return querySnapshot.docs.map(doc => fromAdminFirestore<Announcement>(doc));
 };
 
 export const addAnnouncement = async (announcement: Omit<Announcement, 'id' | 'createdAt'>) => {
@@ -199,10 +197,10 @@ export const deleteAnnouncement = async (id: string) => {
 // --- Payslip Functions ---
 
 export const getPayslipsForUser = async (userId: string): Promise<Payslip[]> => {
-    if (!clientDb) return [];
-    const q = query(collection(clientDb, 'payslips'), where('userId', '==', userId), orderBy('uploadDate', 'desc'));
-    const querySnapshot = await getDocs(q);
-    return querySnapshot.docs.map(doc => fromFirestore<Payslip>(doc));
+    if (!adminDb) return [];
+    const q = adminDb.collection('payslips').where('userId', '==', userId).orderBy('uploadDate', 'desc');
+    const querySnapshot = await q.get();
+    return querySnapshot.docs.map(doc => fromAdminFirestore<Payslip>(doc));
 };
 
 export const addPayslip = async (payslip: Omit<Payslip, 'id' | 'uploadDate'>) => {
@@ -216,10 +214,10 @@ export const addPayslip = async (payslip: Omit<Payslip, 'id' | 'uploadDate'>) =>
 
 // --- WorkPost Functions ---
 export const getWorkPosts = async (): Promise<WorkPost[]> => {
-    if (!clientDb) return [];
-    const q = query(collection(clientDb, 'workPosts'), orderBy('name'));
-    const querySnapshot = await getDocs(q);
-    return querySnapshot.docs.map(doc => fromFirestore<WorkPost>(doc));
+    if (!adminDb) return [];
+    const q = adminDb.collection('workPosts').orderBy('name');
+    const querySnapshot = await q.get();
+    return querySnapshot.docs.map(doc => fromAdminFirestore<WorkPost>(doc));
 };
 
 export const addWorkPost = async (post: WorkPostCreationData) => {
@@ -240,10 +238,10 @@ export const deleteWorkPost = async (id: string) => {
 
 // --- WorkShift Functions ---
 export const getWorkShifts = async (): Promise<WorkShift[]> => {
-    if (!clientDb) return [];
-    const q = query(collection(clientDb, 'workShifts'), orderBy('name'));
-    const querySnapshot = await getDocs(q);
-    return querySnapshot.docs.map(doc => fromFirestore<WorkShift>(doc));
+    if (!adminDb) return [];
+    const q = adminDb.collection('workShifts').orderBy('name');
+    const querySnapshot = await q.get();
+    return querySnapshot.docs.map(doc => fromAdminFirestore<WorkShift>(doc));
 };
 
 export const addWorkShift = async (shift: WorkShiftCreationData) => {
@@ -293,13 +291,13 @@ export async function saveFile(fileOrDataUri: File | string): Promise<string> {
 
 // --- Signature Functions ---
 export const getSignatureForUser = async (userId: string, monthYear: string): Promise<Signature | null> => {
-    if (!clientDb) return null;
-    const q = query(collection(clientDb, 'signatures'), where('userId', '==', userId), where('monthYear', '==', monthYear));
-    const querySnapshot = await getDocs(q);
+    if (!adminDb) return null;
+    const q = adminDb.collection('signatures').where('userId', '==', userId).where('monthYear', '==', monthYear);
+    const querySnapshot = await q.get();
     if (querySnapshot.empty) {
         return null;
     }
-    return fromFirestore<Signature>(querySnapshot.docs[0]);
+    return fromAdminFirestore<Signature>(querySnapshot.docs[0]);
 };
 
 export const getAllSignatures = async (monthYear: string): Promise<Record<string, Signature | null>> => {
@@ -339,10 +337,10 @@ export const updateUserSchedule = async (userId: string, schedule: IndividualSch
 
 // --- Occurrence Functions ---
 export const getOccurrences = async (): Promise<Occurrence[]> => {
-    if (!clientDb) return [];
-    const q = query(collection(clientDb, 'occurrences'), orderBy('createdAt', 'desc'));
-    const querySnapshot = await getDocs(q);
-    return querySnapshot.docs.map(doc => fromFirestore<Occurrence>(doc));
+    if (!adminDb) return [];
+    const q = adminDb.collection('occurrences').orderBy('createdAt', 'desc');
+    const querySnapshot = await q.get();
+    return querySnapshot.docs.map(doc => fromAdminFirestore<Occurrence>(doc));
 };
 
 export const addOccurrence = async (occurrence: Omit<Occurrence, 'id' | 'createdAt'>): Promise<Occurrence> => {
@@ -354,3 +352,5 @@ export const addOccurrence = async (occurrence: Omit<Occurrence, 'id' | 'created
     const docRef = await addDoc(collection(clientDb, 'occurrences'), newOccurrence);
     return { id: docRef.id, ...newOccurrence };
 };
+
+    
