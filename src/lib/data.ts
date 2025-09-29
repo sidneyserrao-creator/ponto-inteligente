@@ -1,4 +1,3 @@
-
 import { db as clientDb, storage as clientStorage, auth as clientAuth } from './firebase';
 import { 
     collection, 
@@ -24,8 +23,8 @@ import {
 } from 'firebase/storage';
 import { createUserWithEmailAndPassword } from 'firebase/auth';
 import type { User, TimeLog, Announcement, Payslip, WorkPost, WorkShift, Signature, WorkPostCreationData, WorkPostUpdateData, WorkShiftCreationData, WorkShiftUpdateData, IndividualSchedule, Occurrence } from '@/lib/types';
-import admin from 'firebase-admin';
 import { auth as adminAuth, db as adminDb, storage as adminStorage } from './firebase-admin';
+import admin from 'firebase-admin';
 
 // Helper to convert Firestore Timestamps from Admin SDK
 const fromAdminFirestore = <T extends { id: string }>(snapshot: admin.firestore.DocumentSnapshot): T => {

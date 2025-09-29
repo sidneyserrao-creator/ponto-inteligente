@@ -1,84 +1,46 @@
 'use client';
 
 import React from 'react';
-import { useFormStatus } from 'react-dom';
+import { useFormState, useFormStatus } from 'react-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { AlertCircle, LogIn, Eye, EyeOff } from 'lucide-react';
-import { auth } from '@/lib/firebase';
-import { signInWithEmailAndPassword } from 'firebase/auth';
-import { redirect, useRouter } from 'next/navigation';
+import { login } from '@/lib/actions';
+
+const initialState = {
+  error: undefined,
+};
+
+function SubmitButton() {
+    const { pending } = useFormStatus();
+    return (
+        <Button 
+            type="submit" 
+            className="w-full bg-blue-900/40 text-sky-300 border border-sky-900 backdrop-blur-lg hover:bg-blue-900/60 hover:text-sky-200 transition-all" 
+            disabled={pending}
+        >
+            {pending ? 'Entrando...' : <> <LogIn className="mr-2 h-4 w-4" /> Entrar </>}
+        </Button>
+    )
+}
 
 export function LoginForm() {
-  const [error, setError] = React.useState<string | undefined>(undefined);
-  const [isPending, setIsPending] = React.useState(false);
+  const [state, formAction] = useFormState(login, initialState);
   const [showPassword, setShowPassword] = React.useState(false);
-  const router = useRouter();
-
-  const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
-      event.preventDefault();
-      setIsPending(true);
-      setError(undefined);
-      
-      const formData = new FormData(event.currentTarget);
-      const email = formData.get('email') as string;
-      const password = formData.get('password') as string;
-      
-      try {
-        // 1. Sign in on the client
-        const userCredential = await signInWithEmailAndPassword(auth, email, password);
-        const idToken = await userCredential.user.getIdToken();
-        
-        // 2. Call the API route to create the session
-        const res = await fetch('/api/auth/session', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${idToken}`
-            }
-        });
-
-        if (res.ok) {
-           // 3. If successful, redirect to dashboard
-           router.push('/dashboard');
-        } else {
-            const data = await res.json();
-            setError(data.error || 'Falha ao criar sessão. Tente novamente.');
-        }
-
-      } catch (error: any) {
-          // This case handles client-side Firebase Auth errors (wrong password, user not found)
-          if (error.code) {
-            switch (error.code) {
-              case 'auth/user-not-found':
-              case 'auth/wrong-password':
-              case 'auth/invalid-credential':
-                setError('Credenciais inválidas.');
-                break;
-              default:
-                setError('Ocorreu um erro de autenticação. Tente novamente.');
-                break;
-            }
-          } else {
-             setError('Ocorreu um erro desconhecido.');
-          }
-      } finally {
-        setIsPending(false);
-      }
-  }
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-4">
+    <form action={formAction} className="space-y-4">
       <div className="space-y-2">
         <Label htmlFor="email">E-mail</Label>
         <Input
           id="email"
           name="email"
           type="email"
-          placeholder="seu.email@bitsolucoes.com"
+          placeholder="admin@bit.com"
           required
+          defaultValue="admin@bit.com"
         />
       </div>
       <div className="space-y-2">
@@ -90,6 +52,7 @@ export function LoginForm() {
               type={showPassword ? 'text' : 'password'} 
               required 
               className="pr-10" // Add padding for the icon
+              defaultValue="adminbit123"
             />
             <button
               type="button"
@@ -102,21 +65,15 @@ export function LoginForm() {
         </div>
       </div>
       
-      {error && (
+      {state?.error && (
         <Alert variant="destructive" className="mt-4">
           <AlertCircle className="h-4 w-4" />
           <AlertTitle>Erro de Autenticação</AlertTitle>
-          <AlertDescription>{error}</AlertDescription>
+          <AlertDescription>{state.error}</AlertDescription>
         </Alert>
       )}
-
-      <Button 
-        type="submit" 
-        className="w-full bg-blue-900/40 text-sky-300 border border-sky-900 backdrop-blur-lg hover:bg-blue-900/60 hover:text-sky-200 transition-all" 
-        disabled={isPending}
-      >
-        {isPending ? 'Entrando...' : <> <LogIn className="mr-2 h-4 w-4" /> Entrar </>}
-    </Button>
+      
+      <SubmitButton />
 
     </form>
   );

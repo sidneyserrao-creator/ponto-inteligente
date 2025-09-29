@@ -1,6 +1,6 @@
 'use server';
 
-import { deleteSession, getCurrentUser } from '@/lib/auth';
+import { createSession, deleteSession, getCurrentUser } from '@/lib/auth';
 import { findUserByEmail, addTimeLog, addAnnouncement, deleteAnnouncement, addPayslip, updateTimeLog, findUserById, addUser, updateUser, deleteUser, addWorkPost, addWorkShift, saveFile, addSignature, updateWorkPost, deleteWorkPost, updateWorkShift, removeWorkShift as removeDataWorkShift, updateUserSchedule, addOccurrence, getWorkPosts } from '@/lib/data';
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
@@ -8,8 +8,42 @@ import { z } from 'zod';
 import { validateTimeLogsWithFacialRecognition } from '@/ai/flows/validate-time-logs-with-facial-recognition';
 import type { Role, TimeLogAction, IndividualSchedule } from './types';
 import { getDaysInMonth, startOfMonth, format, addDays } from 'date-fns';
+import { signInWithEmailAndPassword } from 'firebase/auth';
+import { auth } from './firebase';
+import admin from 'firebase-admin';
 
-// Note: The login server action has been removed and is now handled by an API route (/api/auth/session)
+
+export async function login(prevState: any, formData: FormData) {
+  const email = formData.get('email') as string;
+  const password = formData.get('password') as string;
+
+  try {
+    // This is a trick: we sign in on the server using the client SDK
+    // to get an ID token. This is not standard practice for web apps,
+    // but in this environment it can help bypass client/server sync issues.
+    const userCredential = await signInWithEmailAndPassword(auth, email, password);
+    const idToken = await userCredential.user.getIdToken();
+    
+    await createSession(idToken);
+    
+    revalidatePath('/');
+    redirect('/dashboard');
+  } catch (error: any) {
+    console.error('Login Server Action failed:', error);
+    if (error.code) {
+        switch (error.code) {
+            case 'auth/user-not-found':
+            case 'auth/wrong-password':
+            case 'auth/invalid-credential':
+                return { error: 'Credenciais inválidas.' };
+            default:
+                 console.error('Firebase Auth Error Code:', error.code, 'Message:', error.message);
+                return { error: 'Ocorreu um erro de autenticação. Verifique as credenciais e tente novamente.' };
+        }
+    }
+    return { error: 'Falha ao criar sessão. Ocorreu um erro inesperado no servidor.' };
+  }
+}
 
 export async function logout() {
   await deleteSession();
@@ -447,20 +481,48 @@ export async function logOccurrence(prevState: any, formData: FormData) {
     }
 }
 
+/**
+ * Creates the initial admin user if they don't exist.
+ * This is a server-side utility function.
+ */
 export async function createInitialAdminUser() {
-    try {
-      const adminUser = {
-        name: 'Administrador',
-        email: 'admin@bit.com',
-        password: 'adminbit123',
-        role: 'admin' as const,
-        profilePhotoUrl: 'https://images.unsplash.com/photo-1560250097-0b93528c311a?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwzfHxtYW4lMjBwb3J0cmFpdHxlbnwwfHx8fDE3NTg4MzA1NjF8MA&ixlib=rb-4.1.0&q=80&w=1080',
-      };
-      await addUser(adminUser);
-      return { success: true };
-    } catch (error: any) {
+  try {
+    // Check if the user already exists in Firebase Auth
+    await admin.auth().getUserByEmail('admin@bit.com');
+    console.log('Admin user (admin@bit.com) already exists.');
+    return { success: true, message: 'Admin user already exists.' };
+  } catch (error: any) {
+    if (error.code === 'auth/user-not-found') {
+      // User does not exist, so create them
+      try {
+        const adminUserData = {
+          name: 'Administrador',
+          email: 'admin@bit.com',
+          role: 'admin' as const,
+          profilePhotoUrl: 'https://images.unsplash.com/photo-1560250097-0b93528c311a?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwzfHxtYW4lMjBwb3J0cmFpdHxlbnwwfHx8fDE3NTg4MzA1NjF8MA&ixlib=rb-4.1.0&q=80&w=1080',
+        };
+        
+        const userRecord = await admin.auth().createUser({
+          email: adminUserData.email,
+          password: 'adminbit123', // Set a strong, default password
+          displayName: adminUserData.name,
+          photoURL: adminUserData.profilePhotoUrl,
+        });
+
+        // Save user data to Firestore
+        await admin.firestore().collection('users').doc(userRecord.uid).set(adminUserData);
+        
+        console.log('Successfully created new admin user: admin@bit.com');
+        return { success: true, message: 'Admin user created successfully.' };
+
+      } catch (creationError: any) {
+        console.error('Error creating admin user:', creationError);
+        return { success: false, error: creationError.message };
+      }
+    } else {
+      // Another error occurred
+      console.error('Error checking for admin user:', error);
       return { success: false, error: error.message };
     }
+  }
 }
-
-    

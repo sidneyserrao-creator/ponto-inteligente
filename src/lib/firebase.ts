@@ -3,6 +3,7 @@ import { initializeApp, getApps, getApp, type FirebaseApp } from "firebase/app";
 import { getAuth, type Auth } from "firebase/auth";
 import { getFirestore, type Firestore } from "firebase/firestore";
 import { getStorage, type FirebaseStorage } from "firebase/storage";
+import { createInitialAdminUser } from './actions';
 
 const firebaseConfig = {
   apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
@@ -12,6 +13,14 @@ const firebaseConfig = {
   messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
   appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
 };
+
+// Ensures the initial admin user exists
+if (typeof window !== 'undefined') {
+  // This is a bit of a hack to run a server action from the client initialization.
+  // In a real-world scenario, this might be a separate setup script.
+  createInitialAdminUser().catch(console.error);
+}
+
 
 // Inicializa o Firebase, reutilizando a instância se já existir.
 const app: FirebaseApp = !getApps().length ? initializeApp(firebaseConfig) : getApp();
