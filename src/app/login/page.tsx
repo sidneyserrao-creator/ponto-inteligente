@@ -44,6 +44,12 @@ const pageStyles = {
     background: 'radial-gradient(circle, rgba(59, 130, 246, 0.5) 0%, rgba(59, 130, 246, 0) 70%)',
     filter: 'blur(30px)',
   },
+  newCard: {
+    borderRadius: '30px',
+    background: 'hsl(var(--card) / 0.6)',
+    boxShadow: 'rgba(50, 50, 93, 0.25) 0px 30px 50px -12px inset, rgba(0, 0, 0, 0.3) 0px 18px 26px -18px inset',
+    border: '1px solid rgba(255, 255, 255, 0.1)'
+  }
 };
 
 export default function LoginPage() {
@@ -64,7 +70,7 @@ export default function LoginPage() {
       <main className="flex min-h-screen items-center justify-center p-4 text-white" style={pageStyles.main}>
         <div style={pageStyles.neonBorder}>
            <div style={pageStyles.neonBorderBefore} />
-          <GlassCard className="w-full max-w-sm sm:max-w-md shadow-2xl shadow-black/30" style={{border: '1px solid rgba(255, 255, 255, 0.1)'}}>
+          <GlassCard className="w-full max-w-sm sm:max-w-md backdrop-blur-md" style={pageStyles.newCard}>
             <CardHeader>
               <div style={pageStyles.logoSun}>
                 <div style={pageStyles.logoSunBefore} />
