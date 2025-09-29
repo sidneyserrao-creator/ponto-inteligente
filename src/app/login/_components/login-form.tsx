@@ -4,23 +4,22 @@ import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { AlertCircle, LogIn, Eye, EyeOff, Loader2 } from 'lucide-react';
+import { LogIn, Eye, EyeOff, Loader2 } from 'lucide-react';
 import { login } from '@/lib/actions';
 import { signInWithEmailAndPassword } from 'firebase/auth';
 import { auth as clientAuth } from '@/lib/firebase';
 import { useRouter } from 'next/navigation';
+import { useToast } from '@/hooks/use-toast';
 
 export function LoginForm() {
-  const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const { toast } = useToast();
   const router = useRouter();
 
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setIsLoading(true);
-    setError(null);
 
     const formData = new FormData(event.currentTarget);
     const email = formData.get('email') as string;
@@ -35,7 +34,11 @@ export function LoginForm() {
       const result = await login(idToken);
 
       if (result?.error) {
-        setError(result.error);
+        toast({
+            variant: 'destructive',
+            title: 'Erro de Autenticação',
+            description: result.error,
+        });
         setIsLoading(false);
       } else {
         // Redirect is handled by the server action
@@ -52,7 +55,11 @@ export function LoginForm() {
            }
        }
        console.error('Client-side login error:', authError);
-       setError(errorMessage);
+        toast({
+            variant: 'destructive',
+            title: 'Erro de Autenticação',
+            description: errorMessage,
+        });
        setIsLoading(false);
     }
   };
@@ -95,14 +102,6 @@ export function LoginForm() {
             </button>
         </div>
       </div>
-      
-      {error && (
-        <Alert variant="destructive" className="mt-4">
-          <AlertCircle className="h-4 w-4" />
-          <AlertTitle>Erro de Autenticação</AlertTitle>
-          <AlertDescription>{error}</AlertDescription>
-        </Alert>
-      )}
       
       <Button 
             type="submit" 
