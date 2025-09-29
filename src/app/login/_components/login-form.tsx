@@ -1,6 +1,6 @@
 'use client';
 
-import { useActionState } from 'react';
+import React from 'react';
 import { useFormStatus } from 'react-dom';
 import { login } from '@/lib/actions';
 import { Button } from '@/components/ui/button';
@@ -10,8 +10,6 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { AlertCircle, LogIn, Eye, EyeOff } from 'lucide-react';
 import { auth } from '@/lib/firebase';
 import { signInWithEmailAndPassword } from 'firebase/auth';
-import { redirect } from 'next/navigation';
-import React from 'react';
 
 export function LoginForm() {
   const [error, setError] = React.useState<string | undefined>(undefined);
@@ -31,13 +29,17 @@ export function LoginForm() {
         const userCredential = await signInWithEmailAndPassword(auth, email, password);
         const idToken = await userCredential.user.getIdToken();
         
+        // Pass only the token to the server action
         const result = await login(null, idToken);
 
         if (result?.error) {
+            // This case handles server-side session errors
             setError(result.error);
         }
+        // A successful login action will redirect, so no further client-side action is needed.
 
       } catch (error: any) {
+          // This case handles client-side Firebase Auth errors (wrong password, user not found)
           if (error.code) {
             switch (error.code) {
               case 'auth/user-not-found':
@@ -46,7 +48,7 @@ export function LoginForm() {
                 setError('Credenciais inválidas.');
                 break;
               default:
-                setError('Ocorreu um erro. Tente novamente.');
+                setError('Ocorreu um erro de autenticação. Tente novamente.');
                 break;
             }
           } else {
