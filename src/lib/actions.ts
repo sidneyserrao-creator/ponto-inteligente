@@ -9,8 +9,9 @@ import { validateTimeLogsWithFacialRecognition } from '@/ai/flows/validate-time-
 import type { Role, TimeLogAction, IndividualSchedule } from './types';
 import { getDaysInMonth, startOfMonth, format, addDays } from 'date-fns';
 import { signInWithEmailAndPassword } from 'firebase/auth';
-import { auth } from './firebase';
+import { auth as clientAuth } from './firebase';
 import admin from 'firebase-admin';
+import { auth as adminAuth } from './firebase-admin';
 
 
 export async function login(prevState: any, formData: FormData) {
@@ -21,7 +22,7 @@ export async function login(prevState: any, formData: FormData) {
     // This is a trick: we sign in on the server using the client SDK
     // to get an ID token. This is not standard practice for web apps,
     // but in this environment it can help bypass client/server sync issues.
-    const userCredential = await signInWithEmailAndPassword(auth, email, password);
+    const userCredential = await signInWithEmailAndPassword(clientAuth, email, password);
     const idToken = await userCredential.user.getIdToken();
     
     await createSession(idToken);
@@ -486,9 +487,14 @@ export async function logOccurrence(prevState: any, formData: FormData) {
  * This is a server-side utility function.
  */
 export async function createInitialAdminUser() {
+  if (!adminAuth) {
+    console.error("createInitialAdminUser: Firebase Admin Auth SDK não inicializado.");
+    return { success: false, error: "Admin SDK não está pronto." };
+  }
+  
   try {
     // Check if the user already exists in Firebase Auth
-    await admin.auth().getUserByEmail('admin@bit.com');
+    await adminAuth.getUserByEmail('admin@bit.com');
     console.log('Admin user (admin@bit.com) already exists.');
     return { success: true, message: 'Admin user already exists.' };
   } catch (error: any) {
@@ -502,7 +508,7 @@ export async function createInitialAdminUser() {
           profilePhotoUrl: 'https://images.unsplash.com/photo-1560250097-0b93528c311a?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwzfHxtYW4lMjBwb3J0cmFpdHxlbnwwfHx8fDE3NTg4MzA1NjF8MA&ixlib=rb-4.1.0&q=80&w=1080',
         };
         
-        const userRecord = await admin.auth().createUser({
+        const userRecord = await adminAuth.createUser({
           email: adminUserData.email,
           password: 'adminbit123', // Set a strong, default password
           displayName: adminUserData.name,
