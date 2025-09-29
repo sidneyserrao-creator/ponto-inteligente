@@ -2,7 +2,6 @@
 
 import React from 'react';
 import { useFormStatus } from 'react-dom';
-import { login } from '@/lib/actions';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -10,11 +9,13 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { AlertCircle, LogIn, Eye, EyeOff } from 'lucide-react';
 import { auth } from '@/lib/firebase';
 import { signInWithEmailAndPassword } from 'firebase/auth';
+import { redirect, useRouter } from 'next/navigation';
 
 export function LoginForm() {
   const [error, setError] = React.useState<string | undefined>(undefined);
   const [isPending, setIsPending] = React.useState(false);
   const [showPassword, setShowPassword] = React.useState(false);
+  const router = useRouter();
 
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
       event.preventDefault();
@@ -26,17 +27,26 @@ export function LoginForm() {
       const password = formData.get('password') as string;
       
       try {
+        // 1. Sign in on the client
         const userCredential = await signInWithEmailAndPassword(auth, email, password);
         const idToken = await userCredential.user.getIdToken();
         
-        // Pass only the token to the server action
-        const result = await login(null, idToken);
+        // 2. Call the API route to create the session
+        const res = await fetch('/api/auth/session', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${idToken}`
+            }
+        });
 
-        if (result?.error) {
-            // This case handles server-side session errors
-            setError(result.error);
+        if (res.ok) {
+           // 3. If successful, redirect to dashboard
+           router.push('/dashboard');
+        } else {
+            const data = await res.json();
+            setError(data.error || 'Falha ao criar sessão. Tente novamente.');
         }
-        // A successful login action will redirect, so no further client-side action is needed.
 
       } catch (error: any) {
           // This case handles client-side Firebase Auth errors (wrong password, user not found)

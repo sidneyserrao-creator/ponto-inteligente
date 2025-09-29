@@ -1,6 +1,6 @@
 'use server';
 
-import { createSession, deleteSession, getCurrentUser } from '@/lib/auth';
+import { deleteSession, getCurrentUser } from '@/lib/auth';
 import { findUserByEmail, addTimeLog, addAnnouncement, deleteAnnouncement, addPayslip, updateTimeLog, findUserById, addUser, updateUser, deleteUser, addWorkPost, addWorkShift, saveFile, addSignature, updateWorkPost, deleteWorkPost, updateWorkShift, removeWorkShift as removeDataWorkShift, updateUserSchedule, addOccurrence, getWorkPosts } from '@/lib/data';
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
@@ -9,28 +9,7 @@ import { validateTimeLogsWithFacialRecognition } from '@/ai/flows/validate-time-
 import type { Role, TimeLogAction, IndividualSchedule } from './types';
 import { getDaysInMonth, startOfMonth, format, addDays } from 'date-fns';
 
-type LoginState = {
-  error?: string;
-  success?: boolean;
-};
-
-export async function login(prevState: LoginState | null, idToken: string): Promise<LoginState> {
-  if (!idToken || typeof idToken !== 'string') {
-    return {
-      error: 'Token de autenticação inválido.',
-    };
-  }
-
-  try {
-    await createSession(idToken);
-  } catch (error: any) {
-    console.error("Session Login Error:", error);
-    return { error: 'Falha ao criar sessão. Tente novamente.' };
-  }
-  
-  // This needs to be outside the try/catch, as redirect() throws an error.
-  redirect('/dashboard');
-}
+// Note: The login server action has been removed and is now handled by an API route (/api/auth/session)
 
 export async function logout() {
   await deleteSession();

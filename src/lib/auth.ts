@@ -5,18 +5,14 @@ import { findUserById } from './data';
 import type { User } from './types';
 import { auth as adminAuth } from './firebase-admin';
 
-const SESSION_COOKIE_NAME = 'bit_seguranca_session';
-const expiresIn = 60 * 60 * 24 * 5 * 1000; // 5 days
+export const SESSION_COOKIE_NAME = 'bit_seguranca_session';
+export const expiresIn = 60 * 60 * 24 * 5 * 1000; // 5 days
 
 export async function createSession(idToken: string) {
     if (!adminAuth) throw new Error('Firebase Admin SDK not initialized');
-    const decodedIdToken = await adminAuth.verifyIdToken(idToken);
-    
-    // Only premium users can sign in to the dashboard.
-    // Here you can add any logic to check for custom claims.
     
     // Generate session cookie.
-    const sessionCookie = await adminAuth.createSessionCookie(idToken, { expiresIn, });
+    const sessionCookie = await adminAuth.createSessionCookie(idToken, { expiresIn });
     cookies().set(SESSION_COOKIE_NAME, sessionCookie, {
         httpOnly: true,
         secure: process.env.NODE_ENV === 'production',
