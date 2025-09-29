@@ -1,4 +1,3 @@
-
 'use server';
 
 import { createSession, deleteSession, getCurrentUser } from '@/lib/auth';
@@ -485,3 +484,4 @@ export async function createInitialAdminUser() {
     }
 }
 
+    
