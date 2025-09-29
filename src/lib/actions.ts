@@ -1,3 +1,4 @@
+
 'use server';
 
 import { createSession, deleteSession, getCurrentUser } from '@/lib/auth';
@@ -13,8 +14,61 @@ import { auth as clientAuth } from './firebase';
 import admin from 'firebase-admin';
 import { auth as adminAuth } from './firebase-admin';
 
+/**
+ * Creates the initial admin user if they don't exist.
+ * This is a server-side utility function.
+ */
+export async function createInitialAdminUser() {
+  if (!adminAuth) {
+    console.error("createInitialAdminUser: Firebase Admin Auth SDK não inicializado.");
+    return { success: false, error: "Admin SDK não está pronto." };
+  }
+  
+  try {
+    // Check if the user already exists in Firebase Auth
+    await adminAuth.getUserByEmail('admin@bit.com');
+    console.log('Admin user (admin@bit.com) already exists.');
+    return { success: true, message: 'Admin user already exists.' };
+  } catch (error: any) {
+    if (error.code === 'auth/user-not-found') {
+      // User does not exist, so create them
+      try {
+        const adminUserData = {
+          name: 'Administrador',
+          email: 'admin@bit.com',
+          role: 'admin' as const,
+          profilePhotoUrl: 'https://images.unsplash.com/photo-1560250097-0b93528c311a?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwzfHxtYW4lMjBwb3J0cmFpdHxlbnwwfHx8fDE3NTg4MzA1NjF8MA&ixlib=rb-4.1.0&q=80&w=1080',
+        };
+        
+        const userRecord = await adminAuth.createUser({
+          email: adminUserData.email,
+          password: 'adminbit123', // Set a strong, default password
+          displayName: adminUserData.name,
+          photoURL: adminUserData.profilePhotoUrl,
+        });
+
+        // Save user data to Firestore
+        await admin.firestore().collection('users').doc(userRecord.uid).set(adminUserData);
+        
+        console.log('Successfully created new admin user: admin@bit.com');
+        return { success: true, message: 'Admin user created successfully.' };
+
+      } catch (creationError: any) {
+        console.error('Error creating admin user:', creationError);
+        return { success: false, error: creationError.message };
+      }
+    } else {
+      // Another error occurred
+      console.error('Error checking for admin user:', error);
+      return { success: false, error: error.message };
+    }
+  }
+}
 
 export async function login(idToken: string) {
+  // Ensure the admin user exists before any login attempt.
+  await createInitialAdminUser();
+
   try {
     if (!idToken) {
       return { error: 'Token de autenticação não fornecido.' };
@@ -26,8 +80,6 @@ export async function login(idToken: string) {
     return { error: 'Falha ao criar sessão. Ocorreu um erro inesperado no servidor.' };
   }
   
-  // This needs to be outside the try/catch block
-  // as redirect() throws an error that would be caught.
   revalidatePath('/');
   redirect('/dashboard');
 }
@@ -466,55 +518,4 @@ export async function logOccurrence(prevState: any, formData: FormData) {
     } catch (error) {
         return { error: 'Ocorreu um erro ao registrar a ocorrência.' };
     }
-}
-
-/**
- * Creates the initial admin user if they don't exist.
- * This is a server-side utility function.
- */
-export async function createInitialAdminUser() {
-  if (!adminAuth) {
-    console.error("createInitialAdminUser: Firebase Admin Auth SDK não inicializado.");
-    return { success: false, error: "Admin SDK não está pronto." };
-  }
-  
-  try {
-    // Check if the user already exists in Firebase Auth
-    await adminAuth.getUserByEmail('admin@bit.com');
-    console.log('Admin user (admin@bit.com) already exists.');
-    return { success: true, message: 'Admin user already exists.' };
-  } catch (error: any) {
-    if (error.code === 'auth/user-not-found') {
-      // User does not exist, so create them
-      try {
-        const adminUserData = {
-          name: 'Administrador',
-          email: 'admin@bit.com',
-          role: 'admin' as const,
-          profilePhotoUrl: 'https://images.unsplash.com/photo-1560250097-0b93528c311a?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwzfHxtYW4lMjBwb3J0cmFpdHxlbnwwfHx8fDE3NTg4MzA1NjF8MA&ixlib=rb-4.1.0&q=80&w=1080',
-        };
-        
-        const userRecord = await adminAuth.createUser({
-          email: adminUserData.email,
-          password: 'adminbit123', // Set a strong, default password
-          displayName: adminUserData.name,
-          photoURL: adminUserData.profilePhotoUrl,
-        });
-
-        // Save user data to Firestore
-        await admin.firestore().collection('users').doc(userRecord.uid).set(adminUserData);
-        
-        console.log('Successfully created new admin user: admin@bit.com');
-        return { success: true, message: 'Admin user created successfully.' };
-
-      } catch (creationError: any) {
-        console.error('Error creating admin user:', creationError);
-        return { success: false, error: creationError.message };
-      }
-    } else {
-      // Another error occurred
-      console.error('Error checking for admin user:', error);
-      return { success: false, error: error.message };
-    }
-  }
 }
