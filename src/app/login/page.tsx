@@ -70,7 +70,7 @@ export default function LoginPage() {
       <main className="flex min-h-screen items-center justify-center p-4 text-white" style={pageStyles.main}>
         <div style={pageStyles.neonBorder}>
            <div style={pageStyles.neonBorderBefore} />
-          <GlassCard className="w-full max-w-sm sm:max-w-md backdrop-blur-md" style={pageStyles.newCard}>
+          <GlassCard className="w-full max-w-md backdrop-blur-md" style={pageStyles.newCard}>
             <CardHeader>
               <div style={pageStyles.logoSun}>
                 <div style={pageStyles.logoSunBefore} />
