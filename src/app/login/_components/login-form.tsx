@@ -100,7 +100,7 @@ export function LoginForm() {
 
       <Button 
         type="submit" 
-        className="w-full bg-gradient-to-r from-primary to-accent text-primary-foreground hover:opacity-90 transition-opacity" 
+        className="w-full bg-blue-900/40 text-sky-300 border border-sky-900 backdrop-blur-lg hover:bg-blue-900/60 hover:text-sky-200 transition-all" 
         disabled={isPending}
       >
         {isPending ? 'Entrando...' : <> <LogIn className="mr-2 h-4 w-4" /> Entrar </>}
