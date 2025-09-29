@@ -36,8 +36,8 @@ const pageStyles = {
     position: 'absolute' as const,
     top: '50%',
     left: '50%',
-    width: '180px',
-    height: '180px',
+    width: '220px',
+    height: '220px',
     borderRadius: '50%',
     transform: 'translate(-50%, -50%)',
     zIndex: -1,
@@ -74,7 +74,7 @@ export default function LoginPage() {
             <CardHeader>
               <div style={pageStyles.logoSun}>
                 <div style={pageStyles.logoSunBefore} />
-                <Logo className="h-12 w-auto mx-auto relative z-10" />
+                <Logo className="h-16 w-auto mx-auto relative z-10" />
               </div>
                <h1 className="pt-4 text-center text-2xl font-semibold">
                 Bem-vindo de Volta
