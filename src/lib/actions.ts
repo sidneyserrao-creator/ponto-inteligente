@@ -14,36 +14,22 @@ import admin from 'firebase-admin';
 import { auth as adminAuth } from './firebase-admin';
 
 
-export async function login(prevState: any, formData: FormData) {
-  const email = formData.get('email') as string;
-  const password = formData.get('password') as string;
-
+export async function login(idToken: string) {
   try {
-    // This is a trick: we sign in on the server using the client SDK
-    // to get an ID token. This is not standard practice for web apps,
-    // but in this environment it can help bypass client/server sync issues.
-    const userCredential = await signInWithEmailAndPassword(clientAuth, email, password);
-    const idToken = await userCredential.user.getIdToken();
-    
+    if (!idToken) {
+      return { error: 'Token de autenticação não fornecido.' };
+    }
     await createSession(idToken);
     
-    revalidatePath('/');
-    redirect('/dashboard');
   } catch (error: any) {
-    console.error('Login Server Action failed:', error);
-    if (error.code) {
-        switch (error.code) {
-            case 'auth/user-not-found':
-            case 'auth/wrong-password':
-            case 'auth/invalid-credential':
-                return { error: 'Credenciais inválidas.' };
-            default:
-                 console.error('Firebase Auth Error Code:', error.code, 'Message:', error.message);
-                return { error: 'Ocorreu um erro de autenticação. Verifique as credenciais e tente novamente.' };
-        }
-    }
+    console.error('Server Action login failed:', error);
     return { error: 'Falha ao criar sessão. Ocorreu um erro inesperado no servidor.' };
   }
+  
+  // This needs to be outside the try/catch block
+  // as redirect() throws an error that would be caught.
+  revalidatePath('/');
+  redirect('/dashboard');
 }
 
 export async function logout() {
