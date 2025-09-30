@@ -1,7 +1,7 @@
 import type { SVGProps } from 'react';
 import Image from 'next/image';
 
-export function Logo(props: React.ImgHTMLAttributes<HTMLImageElement>) {
+export function Logo(props: Omit<React.ImgHTMLAttributes<HTMLImageElement>, 'src'>) {
   // O logo.png deve estar na pasta /public na raiz do projeto.
   const logoUrl = "/logo.png";
 
