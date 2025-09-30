@@ -2,9 +2,43 @@ rules_version = '2';
 
 service firebase.storage {
   match /b/{bucket}/o {
-    // Nega a leitura e escrita para todos por padrÃ£o
-    match /{allPaths=**} {
-      allow read, write: if false;
+
+    // --- Funções Auxiliares ---
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function getFirestoreUser(userId) {
+      return firestore.get(/databases/(default)/documents/users/$(userId)).data;
+    }
+
+    function isAdmin() {
+      return isAuthenticated() && getFirestoreUser(request.auth.uid).role == 'admin';
+    }
+
+    // 1. Arquivos de Contracheque (Payslips)
+    // Caminho seguro: /payslips/{userId}/{fileName}
+    match /payslips/{userId}/{allPaths=**} {
+      // LEITURA: O dono do contracheque (cujo UID bate com o {userId} no caminho) ou um admin.
+      allow read: if isAdmin() || request.auth.uid == userId;
+      
+      // ESCRITA: Apenas admins podem fazer upload ou deletar contracheques.
+      allow write: if isAdmin();
+    }
+
+    // 2. Uploads de Fotos (Ponto e Perfil)
+    // Caminho: /uploads/{fileName}
+    match /uploads/{allPaths=**} {
+      // LEITURA e ESCRITA: Permite que qualquer usuário autenticado leia e escreva.
+      // Isso é necessário para que os usuários possam fazer upload de suas fotos de ponto
+      // e para que os admins possam ver essas fotos.
+      // A segurança aqui depende da dificuldade de adivinhar o nome do arquivo, que inclui um timestamp.
+      allow read, write: if isAuthenticated();
+    }
+
+     // 3. Placeholder de usuário
+    match /placeholders/{allPaths=**} {
+      allow read: if true;
     }
   }
 }

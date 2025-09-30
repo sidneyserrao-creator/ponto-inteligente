@@ -3,7 +3,7 @@ import { useState, useRef } from 'react';
 import { GlassCard, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/glass-card';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { useToast } from '@/hooks/use-toast';
+import { useToast } from '@/components/ui/use-toast';
 import { uploadPayslip } from '@/lib/actions';
 import type { User } from '@/lib/types';
 import { FileText, UploadCloud, Loader2 } from 'lucide-react';
@@ -38,10 +38,11 @@ export function DocumentManager({ collaborators }: DocumentManagerProps) {
     }
     setIsLoading(true);
     
-    // Simulate upload
-    await new Promise(resolve => setTimeout(resolve, 1500));
-    
-    const result = await uploadPayslip(selectedUser, selectedFile.name);
+    const formData = new FormData();
+    formData.append('userId', selectedUser);
+    formData.append('file', selectedFile);
+
+    const result = await uploadPayslip(formData);
     
     if (result.success) {
       toast({ title: 'Sucesso!', description: result.message });
@@ -49,7 +50,7 @@ export function DocumentManager({ collaborators }: DocumentManagerProps) {
       setSelectedUser('');
       if(fileInputRef.current) fileInputRef.current.value = '';
     } else {
-      toast({ variant: 'destructive', title: 'Erro', description: 'Falha ao enviar o contracheque.' });
+      toast({ variant: 'destructive', title: 'Erro', description: result.error });
     }
     setIsLoading(false);
   };

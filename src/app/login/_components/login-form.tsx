@@ -9,7 +9,7 @@ import { login } from '@/lib/actions';
 import { signInWithEmailAndPassword } from 'firebase/auth';
 import { auth as clientAuth } from '@/lib/firebase';
 import { useRouter } from 'next/navigation';
-import { useToast } from '@/hooks/use-toast';
+import { useToast } from '@/components/ui/use-toast';
 
 export function LoginForm() {
   const [isLoading, setIsLoading] = useState(false);
@@ -31,22 +31,23 @@ export function LoginForm() {
       const idToken = await userCredential.user.getIdToken();
 
       // 2. Pass the token to the server action to create the session cookie
-      const result = await login(idToken);
+      await login(idToken);
 
-      if (result?.error) {
-        toast({
-            variant: 'destructive',
-            title: 'Erro de Autenticação',
-            description: result.error,
-        });
-        setIsLoading(false);
-      } else {
-        // Redirect is handled by the server action
-      }
-    } catch (authError: any) {
+      // If login is successful, the server action will redirect.
+      // The code below might not even be reached if the redirect is fast enough.
+      // We don't need to do anything here.
+
+    } catch (error: any) {
+        // Handle the specific NEXT_REDIRECT error from server actions
+        if (error.digest?.includes('NEXT_REDIRECT')) {
+            // This is not a real error, but how Next.js handles redirects in Server Actions.
+            // We can safely ignore it.
+            return;
+        }
+
        let errorMessage = 'Ocorreu um erro de autenticação. Verifique suas credenciais.';
-       if (authError.code) {
-           switch (authError.code) {
+       if (error.code) {
+           switch (error.code) {
                case 'auth/user-not-found':
                case 'auth/wrong-password':
                case 'auth/invalid-credential':
@@ -54,7 +55,7 @@ export function LoginForm() {
                    break;
            }
        }
-       console.error('Client-side login error:', authError);
+       console.error('Client-side login error:', error);
         toast({
             variant: 'destructive',
             title: 'Erro de Autenticação',

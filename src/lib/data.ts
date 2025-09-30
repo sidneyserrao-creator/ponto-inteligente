@@ -1,3 +1,4 @@
+
 import { db as clientDb, storage as clientStorage, auth as clientAuth } from './firebase';
 import { 
     collection, 
@@ -261,7 +262,7 @@ export const removeWorkShift = async (id: string) => {
 };
 
 // --- File Storage ---
-export async function saveFile(fileOrDataUri: File | string): Promise<string> {
+export async function saveFile(fileOrDataUri: File | string, customPath?: string): Promise<string> {
     if (!adminStorage) throw new Error('Firebase Admin Storage not initialized');
 
     const bucket = adminStorage.bucket();
@@ -270,16 +271,24 @@ export async function saveFile(fileOrDataUri: File | string): Promise<string> {
     let fileName: string;
 
     if (typeof fileOrDataUri === 'string') {
+        if (customPath) {
+            fileName = customPath;
+        } else {
+            fileName = `uploads/${Date.now()}_captured.jpg`;
+        }
         const parts = fileOrDataUri.match(/^data:(.+);base64,(.+)$/);
         if (!parts) throw new Error("Invalid Data URI");
         fileType = parts[1];
         fileBuffer = Buffer.from(parts[2], 'base64');
-        fileName = `uploads/${Date.now()}_captured.jpg`;
     } else {
+        if (customPath) {
+            fileName = customPath;
+        } else {
+            fileName = `uploads/${Date.now()}_${fileOrDataUri.name}`;
+        }
         const arrayBuffer = await fileOrDataUri.arrayBuffer();
         fileBuffer = Buffer.from(arrayBuffer);
         fileType = fileOrDataUri.type;
-        fileName = `uploads/${Date.now()}_${fileOrDataUri.name}`;
     }
 
     const file = bucket.file(fileName);
@@ -289,14 +298,9 @@ export async function saveFile(fileOrDataUri: File | string): Promise<string> {
             contentType: fileType,
         },
     });
-
-    // Make the file public to get a predictable URL
-    await file.makePublic();
     
-    // Construct the public URL
-    const publicUrl = `https://storage.googleapis.com/${bucket.name}/${file.name}`;
-    
-    return publicUrl;
+    // Return the full path, NOT a public URL
+    return fileName;
 }
 
 // --- Signature Functions ---
@@ -363,6 +367,3 @@ export const addOccurrence = async (occurrence: Omit<Occurrence, 'id' | 'created
     return { id: docRef.id, ...newOccurrence };
 };
 
-    
-
-    

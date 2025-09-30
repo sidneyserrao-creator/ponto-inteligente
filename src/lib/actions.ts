@@ -214,13 +214,31 @@ export async function removeAnnouncement(id: string) {
     revalidatePath('/dashboard');
 }
 
-export async function uploadPayslip(userId: string, fileName: string) {
-    // In a real app, the file would be uploaded here, and we'd get a URL.
-    // For now, we just record the metadata.
-    const mockFileUrl = `/payslips/${userId}/${fileName}`;
-    await addPayslip({ userId, fileName: fileName, fileUrl: mockFileUrl });
-    revalidatePath('/dashboard');
-    return { success: true, message: `Contracheque ${fileName} enviado com sucesso.` };
+export async function uploadPayslip(formData: FormData) {
+    try {
+        const userId = formData.get('userId') as string;
+        const file = formData.get('file') as File;
+
+        if (!userId || !file) {
+            return { error: 'Usuário ou arquivo não fornecido.' };
+        }
+
+        const filePath = `payslips/${userId}/${file.name}`;
+        const fileUrl = await saveFile(file, filePath);
+
+        await addPayslip({
+            userId,
+            fileName: file.name,
+            fileUrl: fileUrl, // Use the URL returned from saveFile
+        });
+
+        revalidatePath('/dashboard');
+        return { success: true, message: `Contracheque ${file.name} enviado com sucesso.` };
+    } catch (error) {
+        console.error(error);
+        const errorMessage = error instanceof Error ? error.message : 'Ocorreu um erro desconhecido.';
+        return { error: `Falha ao enviar o contracheque: ${errorMessage}` };
+    }
 }
 
 export async function editTimeLog(logId: string, newTimestamp: string) {

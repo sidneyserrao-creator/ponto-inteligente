@@ -1,152 +1,102 @@
 rules_version = '2';
+
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // ---------------------------------
-    // Funções de Apoio (Helpers)
-    // ---------------------------------
-    function isAdmin() {
-      // Verifica se o UID do usuário logado é o UID do administrador.
-      // O UID '2wQ3RkGsqMeBtdRfNSLjB9BYsku1' é o do admin@bit.com
-      return request.auth.uid == "2wQ3RkGsqMeBtdRfNSLjB9BYsku1";
-    }
-
+    // --- Funções Auxiliares ---
     function isAuthenticated() {
-      // Verifica se existe um usuário logado.
       return request.auth != null;
     }
 
     function isOwner(userId) {
-      // Verifica se o usuário logado é o dono do documento.
-      return isAuthenticated() && request.auth.uid == userId;
+      return request.auth.uid == userId;
     }
 
-    // REMOVIDA: getRequestingUserData() foi removida para evitar o loop de permissão.
-    // O papel será verificado diretamente nas regras que o exigem.
+    function getUserData(userId) {
+      return get(/databases/$(database)/documents/users/$(userId)).data;
+    }
+
+    function isAdmin() {
+      return isAuthenticated() && getUserData(request.auth.uid).role == 'admin';
+    }
 
     function isSupervisor() {
-      // Verifica se o usuário logado tem o papel de 'supervisor' lendo diretamente
-      // o documento do usuário logado na coleção 'users'.
-      // Esta função é perigosa e deve ser usada com cuidado, preferindo a lógica direta.
-      // Vamos mantê-la temporariamente enquanto debugamos.
-      return isAuthenticated() && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'supervisor';
+      return isAuthenticated() && getUserData(request.auth.uid).role == 'supervisor';
     }
     
-    // ---------------------------------
-    // Regras das Coleções
-    // ---------------------------------
+    // --- Regras das Coleções ---
 
-    // Coleção de usuários (colaboradores, supervisores e administradores)
+    // 1. Coleção `users`
     match /users/{userId} {
-      // Leitura: O próprio usuário, ou o admin, ou um supervisor (se o supervisorId no documento do usuário for o UID do usuário logado).
-      // A regra mais crítica: permite a leitura do próprio documento.
+      // LEITURA: O próprio usuário, um admin, ou o supervisor direto do usuário alvo.
       allow read: if isOwner(userId) || isAdmin() || 
-                  (isSupervisor() && resource.data.supervisorId == request.auth.uid);
+                    (isSupervisor() && getUserData(userId).supervisorId == request.auth.uid);
 
-      // Criação: Apenas o admin.
+      // CRIAÇÃO: Apenas admins.
       allow create: if isAdmin();
 
-      // Atualização: O admin, ou o próprio usuário (sem alterar campos críticos),
-      // ou um supervisor que seja o supervisorId do documento.
-      allow update: if isAdmin() ||
-                      (isOwner(userId) && !(request.resource.data.diff(resource.data).affectedKeys().hasAny(['role', 'supervisorId', 'admissionDate']))) ||
-                      // Removendo isSupervisor() aqui e simplificando:
-                      (isAuthenticated() && resource.data.supervisorId == request.auth.uid && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'supervisor');
+      // ATUALIZAÇÃO: Admins, ou um supervisor atualizando um subordinado.
+      allow update: if isAdmin() || 
+                      (isSupervisor() && getUserData(userId).supervisorId == request.auth.uid);
                       
-      // Deleção: Apenas o admin.
+      // EXCLUSÃO: Apenas admins.
       allow delete: if isAdmin();
-
-      // Subcoleção: Contracheques
-      // OBS: Mude 'contracheques' para 'payslips' se esse for o nome real.
-      match /contracheques/{contrachequeId} {
-        // Leitura: Apenas o próprio colaborador (userId) ou o admin.
-        allow read: if isOwner(userId) || isAdmin();
-        // Escrita: Apenas o admin.
-        allow write: if isAdmin();
-      }
-      
-      // Subcoleção: Escalas
-      // OBS: Mude 'escalas' para 'workShifts' se esse for o nome real.
-      match /escalas/{escalaId} {
-        // Leitura: O próprio colaborador ou o admin.
-        allow read: if isOwner(userId) || isAdmin();
-        // Escrita: Apenas o admin. 
-        allow write: if isAdmin();
-      }
-      
-      // Subcoleção: Tokens para Notificação Push
-      match /pushTokens/{tokenId} {
-        // Acesso total apenas para o próprio usuário ou o admin.
-        allow read, write: if isOwner(userId) || isAdmin();
-      }
     }
 
-    // Coleção de Avisos (announcements)
-    // OBS: Mude 'avisos' para 'announcements' se esse for o nome real.
-    match /avisos/{avisoId} {
-      // Leitura: Qualquer usuário autenticado.
-      allow read: if isAuthenticated();
-      // Escrita: Supervisores ou o admin.
-      allow write: if isSupervisor() || isAdmin();
-    }
-
-    // Coleção de Ocorrências (occurrences)
-    // OBS: Mude 'ocorrencias' para 'occurrences' se esse for o nome real.
-    match /ocorrencias/{ocorrenciaId} {
-      // O documento DEVE conter o campo 'collaboratorId' e 'supervisorId'
-      function isCollaboratorOwner() { return resource.data.collaboratorId == request.auth.uid; }
-      function isCollaboratorSupervisor() { return resource.data.supervisorId == request.auth.uid; }
-
-      // Leitura: Admin, ou o colaborador dono, ou o supervisor do colaborador.
-      allow read: if isAdmin() || isCollaboratorOwner() || isCollaboratorSupervisor();
-                  
-      // Escrita/Criação: Apenas o admin ou o supervisor do colaborador.
-      allow write: if isAdmin() || isCollaboratorSupervisor();
-    }
-    
-    // Coleção de Registros de Ponto (timeLogs)
-    // OBS: Mude 'timeLogs' se esse for o nome real.
+    // 2. Coleção `timeLogs`
     match /timeLogs/{logId} {
-      // O documento DEVE conter o campo 'userId' e 'supervisorId' (para otimizar a regra de leitura)
-      function isLogOwner() { return resource.data.userId == request.auth.uid; }
-      function isLogSupervisor() { return resource.data.supervisorId == request.auth.uid; }
-      
-      // Leitura: Admin, ou o dono do registro, ou o supervisor do dono do registro.
-      allow read: if isAdmin() || isLogOwner() || isLogSupervisor();
-      
-      // Criação/Atualização: Apenas o próprio colaborador que está batendo o ponto.
-      allow create, update: if isLogOwner();
-    }
-    
-    // Coleções restantes que não são subcoleções de /users/
-    
-    // Coleção de Postos de Trabalho (workPosts)
-    match /workPosts/{postId} {
-        // Leitura: Qualquer usuário autenticado pode ler a lista de postos.
-        allow read: if isAuthenticated();
-        // Escrita: Apenas o admin.
-        allow write: if isAdmin();
+      function isLogOwner() { 
+        return request.resource.data.userId == request.auth.uid; 
+      }
+      function getLogOwnerSupervisorId() {
+        return getUserData(request.resource.data.userId).supervisorId;
+      }
+
+      // LEITURA: Admin, o dono do registro, ou o supervisor do dono.
+      allow read: if isAdmin() || isLogOwner() || (isSupervisor() && getLogOwnerSupervisorId() == request.auth.uid);
+
+      // CRIAÇÃO: O usuário pode criar um registro apenas para si mesmo.
+      allow create: if request.resource.data.userId == request.auth.uid;
+
+      // ATUALIZAÇÃO: Admins ou o supervisor (para ajustes manuais).
+      allow update: if isAdmin() || (isSupervisor() && getLogOwnerSupervisorId() == request.auth.uid);
     }
 
-    // Coleção de Turnos de Trabalho (workShifts)
-    match /workShifts/{shiftId} {
-        // Leitura: Qualquer usuário autenticado pode ler os turnos disponíveis.
-        allow read: if isAuthenticated();
-        // Escrita: Apenas o admin.
-        allow write: if isAdmin();
+    // 3. Coleção `payslips`
+    match /payslips/{payslipId} {
+      // LEITURA: Admin ou o dono do contracheque.
+      allow read: if isAdmin() || request.resource.data.userId == request.auth.uid;
+      
+      // ESCRITA (Criar, Atualizar, Excluir): Apenas admins.
+      allow write: if isAdmin();
     }
 
-    // Coleção de Assinaturas (signatures)
-    // Assume que a assinatura é feita pelo colaborador e só é acessível por ele ou pelo admin.
+    // 4. Coleções Gerenciadas pelo Admin
+    match /announcements/{docId} {
+      allow read: if isAuthenticated();
+      allow write: if isAdmin();
+    }
+    match /workPosts/{docId} {
+      allow read: if isAuthenticated();
+      allow write: if isAdmin();
+    }
+    match /workShifts/{docId} {
+      allow read: if isAuthenticated();
+      allow write: if isAdmin();
+    }
+    match /occurrences/{docId} {
+      allow read: if isAuthenticated();
+      // Supervisores também podem criar ocorrências para seus subordinados.
+      allow write: if isAdmin() || isSupervisor();
+    }
+
+    // 5. Coleção `signatures`
     match /signatures/{signatureId} {
-        // O documento deve ter o campo 'userId'
-        allow read: if isAdmin() || resource.data.userId == request.auth.uid;
-        // Escrita: Apenas o próprio usuário (ao assinar) ou o admin (para upload/modificação).
-        allow write: if isAdmin() || resource.data.userId == request.auth.uid;
-    }
-    
-    // Coleção de Contracheques (payslips)
-    // O contracheque é tratado como subcoleção de 'users' acima.
+      // LEITURA: Admins e Supervisores.
+      allow read: if isAdmin() || isSupervisor();
 
+      // CRIAÇÃO: O usuário pode assinar apenas para si mesmo.
+      allow create: if request.resource.data.userId == request.auth.uid;
+    }
   }
 }

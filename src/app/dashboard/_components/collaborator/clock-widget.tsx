@@ -20,7 +20,7 @@ interface ClockWidgetProps {
 export function ClockWidget({ user, timeLogs }: ClockWidgetProps) {
   const [view, setView] = useState<ViewState>('idle');
   const [isProcessing, setIsProcessing] = useState(false);
-  const [currentTime, setCurrentTime] = useState(new Date());
+  const [currentTime, setCurrentTime] = useState<Date | null>(null);
   const [capturedImage, setCapturedImage] = useState<string | null>(null);
   const [currentLocation, setCurrentLocation] = useState<{latitude: number, longitude: number} | null>(null);
   const [locationError, setLocationError] = useState<string | null>(null);
@@ -32,6 +32,9 @@ export function ClockWidget({ user, timeLogs }: ClockWidgetProps) {
   const { toast } = useToast();
 
   useEffect(() => {
+    // Set initial time on client mount
+    setCurrentTime(new Date());
+
     // Start the sync process when the component mounts
     startSyncProcess();
 
@@ -221,13 +224,21 @@ export function ClockWidget({ user, timeLogs }: ClockWidgetProps) {
         </CardDescription>
       </CardHeader>
       <CardContent className="flex flex-col items-center gap-6">
-        <div className="text-center">
-          <p className="text-6xl font-bold tracking-tighter text-primary">
-            {currentTime.toLocaleTimeString('pt-BR')}
-          </p>
-          <p className="text-muted-foreground">
-            {currentTime.toLocaleDateString('pt-BR', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
-          </p>
+        <div className="text-center h-28">
+          {currentTime ? (
+            <>
+              <p className="text-6xl font-bold tracking-tighter text-primary">
+                {currentTime.toLocaleTimeString('pt-BR')}
+              </p>
+              <p className="text-muted-foreground">
+                {currentTime.toLocaleDateString('pt-BR', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
+              </p>
+            </>
+          ) : (
+             <div className="h-full flex items-center justify-center">
+                <Loader2 className="h-10 w-10 animate-spin text-primary" />
+             </div>
+          )}
         </div>
 
         {view === 'idle' && (
@@ -298,3 +309,5 @@ export function ClockWidget({ user, timeLogs }: ClockWidgetProps) {
     </GlassCard>
   );
 }
+
+    
