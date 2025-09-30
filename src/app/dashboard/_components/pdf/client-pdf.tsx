@@ -1,7 +1,6 @@
 'use client';
 
 import { PDFDownloadLink } from '@react-pdf/renderer';
-import dynamic from 'next/dynamic';
 import { Button } from '@/components/ui/button';
 import { Download, Loader2 } from 'lucide-react';
 import { format } from 'date-fns';
@@ -31,7 +30,7 @@ export function ClientPDF({ user, logs, signature }: ClientPDFProps) {
     ? { variant: "outline" as const, size: "sm" as const, className: "mt-4" }
     : { variant: "outline" as const, size: "sm" as const };
 
-  if (!isClient) {
+  if (!isClient || !signature) {
      return (
       <Button {...buttonProps} disabled>
           <Loader2 className="mr-2 h-4 w-4 animate-spin" />
