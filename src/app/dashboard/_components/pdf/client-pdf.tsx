@@ -6,11 +6,8 @@ import { Button } from '@/components/ui/button';
 import { Download, Loader2 } from 'lucide-react';
 import { format } from 'date-fns';
 import type { TimeLog, User, Signature } from '@/lib/types';
-
-// Dynamically import the document component itself to avoid server-side rendering issues
-const TimeSheetDocument = dynamic(() => import('./time-sheet-document').then(mod => mod.TimeSheetDocument), {
-  ssr: false,
-});
+import { TimeSheetDocument } from './time-sheet-document';
+import { useState, useEffect } from 'react';
 
 interface ClientPDFProps {
     user: User;
@@ -19,6 +16,12 @@ interface ClientPDFProps {
 }
 
 export function ClientPDF({ user, logs, signature }: ClientPDFProps) {
+  const [isClient, setIsClient] = useState(false);
+  
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
+  
   const currentMonthYear = format(new Date(), 'yyyy-MM');
   const fileName = user.role === 'collaborator' 
     ? `minha-folha-ponto-${currentMonthYear}.pdf`
@@ -27,6 +30,15 @@ export function ClientPDF({ user, logs, signature }: ClientPDFProps) {
   const buttonProps = user.role === 'collaborator' 
     ? { variant: "outline" as const, size: "sm" as const, className: "mt-4" }
     : { variant: "outline" as const, size: "sm" as const };
+
+  if (!isClient) {
+     return (
+      <Button {...buttonProps} disabled>
+          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+          Carregando...
+      </Button>
+    );
+  }
 
   return (
     <PDFDownloadLink
