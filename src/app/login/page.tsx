@@ -74,7 +74,7 @@ export default function LoginPage() {
             <CardHeader>
               <div style={pageStyles.logoSun}>
                 <div style={pageStyles.logoSunBefore} />
-                <Logo className="h-16 w-auto mx-auto relative z-10" />
+                <Logo className="h-16 w-auto mx-auto relative z-50" />
               </div>
                <h1 className="pt-4 text-center text-2xl font-semibold">
                 Bem-vindo de Volta
