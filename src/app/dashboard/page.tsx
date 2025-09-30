@@ -38,16 +38,21 @@ export default async function DashboardPage() {
                 />;
       case 'supervisor':
         const allUsersForSupervisor = await getUsers();
-        const teamMemberIds = user.team || [];
-        const teamMembers = allUsersForSupervisor.filter(u => teamMemberIds.includes(u.id));
         const allLogs = await getAllTimeLogs();
         const allWorkposts = await getWorkPosts();
+        
+        // Correctly find supervised posts
         const supervisedPosts = allWorkposts.filter(p => p.supervisorId === user.id);
+        const supervisedPostIds = supervisedPosts.map(p => p.id);
+
+        // Correctly find team members based on supervised posts
+        const teamMembers = allUsersForSupervisor.filter(u => u.workPostId && supervisedPostIds.includes(u.workPostId));
 
         const teamLogs = teamMembers.map(member => ({
             ...member,
             timeLogs: allLogs.filter(log => log.userId === member.id).sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()),
         }));
+
         return <SupervisorDashboard 
                   user={user} 
                   announcements={allAnnouncements} 
