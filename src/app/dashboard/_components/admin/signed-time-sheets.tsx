@@ -117,7 +117,7 @@ export function SignedTimeSheets({ collaborators, signatureStatus, allTimeLogs }
                       )}
                     </TableCell>
                     <TableCell className="text-right">
-                       {isSigned && userLogs.length > 0 ? (
+                       {isClient && isSigned && userLogs.length > 0 ? (
                           <DownloadButton user={user} logs={userLogs} signature={signature} />
                         ) : (
                           <Button variant="outline" size="sm" disabled>

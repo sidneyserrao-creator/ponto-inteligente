@@ -96,7 +96,7 @@ export function SignSheetWidget({ user, logs, initialSignature }: SignSheetWidge
             <CheckCircle className="h-10 w-10 text-green-400 mb-2" />
             <p className="font-semibold text-foreground">Ponto Assinado!</p>
             <p className="text-sm text-muted-foreground">Sua folha de ponto para {currentMonth} já foi assinada.</p>
-             <DownloadButton />
+             {isClient && <DownloadButton />}
           </div>
         ) : (
           <>
