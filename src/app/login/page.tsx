@@ -1,6 +1,7 @@
 import { Logo } from '@/components/icons';
 import { LoginForm } from './_components/login-form';
 import { GlassCard, CardHeader, CardContent } from '@/components/glass-card';
+import Image from 'next/image';
 
 // Custom styles that use CSS variables for animation, which are hard to replicate with Tailwind alone.
 const pageStyles = {
@@ -85,6 +86,15 @@ export default function LoginPage() {
             </CardHeader>
             <CardContent>
               <LoginForm />
+               <div className="mt-6 text-center">
+                <Image
+                  src="/lecode-logo.png"
+                  alt="Lecode Soluções Logo"
+                  width={150}
+                  height={50}
+                  className="mx-auto"
+                />
+              </div>
             </CardContent>
           </GlassCard>
         </div>
