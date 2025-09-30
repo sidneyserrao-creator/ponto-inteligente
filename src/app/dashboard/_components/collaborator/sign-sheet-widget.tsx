@@ -1,5 +1,6 @@
 'use client';
 import { useState, useEffect } from 'react';
+import dynamic from 'next/dynamic';
 import { GlassCard, CardHeader, CardTitle, CardContent, CardDescription } from '@/components/glass-card';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
@@ -8,8 +9,12 @@ import { FileSignature, CheckCircle, Download, Loader2 } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import type { TimeLog, User, Signature } from '@/lib/types';
-import { TimeSheetDocument } from '../pdf/time-sheet-document';
 import { PDFDownloadLink } from '@react-pdf/renderer';
+
+const TimeSheetDocument = dynamic(() => import('../pdf/time-sheet-document').then(mod => mod.TimeSheetDocument), {
+  ssr: false,
+  loading: () => <p>Carregando documento...</p>,
+});
 
 interface SignSheetWidgetProps {
   user: User;

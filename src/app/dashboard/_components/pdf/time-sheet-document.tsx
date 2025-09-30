@@ -31,12 +31,13 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     marginBottom: 20,
-    borderBottom: '1pt solid #E5E7EB',
+    borderBottomWidth: 1,
+    borderBottomStyle: 'solid',
+    borderBottomColor: '#E5E7EB',
     paddingBottom: 10,
   },
   logo: {
     width: 80,
-    height: 'auto',
   },
   headerText: {
     textAlign: 'right',
@@ -57,7 +58,9 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: 'bold',
     marginBottom: 8,
-    borderBottom: '1pt solid #E5E7EB',
+    borderBottomWidth: 1,
+    borderBottomStyle: 'solid',
+    borderBottomColor: '#E5E7EB',
     paddingBottom: 4,
   },
   userInfo: {
@@ -116,7 +119,9 @@ const styles = StyleSheet.create({
     left: 30,
     right: 30,
     textAlign: 'center',
-    borderTop: '1pt solid #E5E7EB',
+    borderTopWidth: 1,
+    borderTopStyle: 'solid',
+    borderTopColor: '#E5E7EB',
     paddingTop: 10,
   },
   signatureSection: {

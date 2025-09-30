@@ -14,7 +14,7 @@ interface CollaboratorDashboardProps {
   signature: Signature | null;
 }
 
-export async function CollaboratorDashboard({ user, announcements, timeLogs, payslips, signature }: CollaboratorDashboardProps) {
+export function CollaboratorDashboard({ user, announcements, timeLogs, payslips, signature }: CollaboratorDashboardProps) {
   // We no longer need to fetch the image and convert to data URI here
   // because the facial recognition flow will do it.
   

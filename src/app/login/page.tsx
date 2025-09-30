@@ -3,7 +3,6 @@ import { LoginForm } from './_components/login-form';
 import { GlassCard, CardHeader, CardContent } from '@/components/glass-card';
 import Image from 'next/image';
 
-// Custom styles that use CSS variables for animation, which are hard to replicate with Tailwind alone.
 const pageStyles = {
   main: {
     background: 'linear-gradient(to bottom, #041b46, #0a2a73)',
@@ -37,8 +36,8 @@ const pageStyles = {
     position: 'absolute' as const,
     top: '50%',
     left: '50%',
-    width: '220px',
-    height: '220px',
+    width: '260px',
+    height: '260px',
     borderRadius: '50%',
     transform: 'translate(-50%, -50%)',
     zIndex: -1,
@@ -68,35 +67,42 @@ export default function LoginPage() {
           }
         `}
       </style>
-      <main className="flex min-h-screen items-center justify-center p-4 text-white" style={pageStyles.main}>
-        <div style={pageStyles.neonBorder}>
-           <div style={pageStyles.neonBorderBefore} />
-          <GlassCard className="w-full max-w-lg backdrop-blur-md shadow-lg shadow-black/30" style={pageStyles.newCard}>
+      <main
+        className="flex min-h-screen items-center justify-center px-4 text-white"
+        style={pageStyles.main}
+      >
+        <div style={pageStyles.neonBorder} className="w-full max-w-sm sm:max-w-md lg:max-w-lg">
+          <div style={pageStyles.neonBorderBefore} />
+          <GlassCard
+            className="w-full backdrop-blur-md shadow-lg shadow-black/30"
+            style={pageStyles.newCard}
+          >
             <CardHeader>
               <div style={pageStyles.logoSun}>
                 <div style={pageStyles.logoSunBefore} />
                 <img
                   src="/logo.png"
                   alt="Logo Bit Segurança"
-                  className="mx-auto w-24 h-24 bg-transparent"
+                  className="mx-auto w-24 h-24 sm:w-28 sm:h-28 md:w-32 md:h-32 bg-transparent"
                 />
               </div>
-               <h1 className="pt-4 text-center text-2xl font-semibold">
+              <h1 className="pt-4 text-center text-xl sm:text-2xl font-semibold">
                 Bem-vindo de Volta
               </h1>
-              <p className="pb-2 text-center text-sm text-gray-300">
+              <p className="pb-2 text-center text-xs sm:text-sm text-gray-300">
                 Faça login para acessar seu painel.
               </p>
             </CardHeader>
             <CardContent>
               <LoginForm />
-               <div className="mt-6 text-center">
+              <div className="mt-6 text-center">
                 <Image
                   src="/lecode-logo.png"
                   alt="Lecode Soluções Logo"
-                  width={150}
-                  height={50}
+                  width={140}
+                  height={45}
                   className="mx-auto"
+                  style={{ height: 'auto' }}
                 />
               </div>
             </CardContent>

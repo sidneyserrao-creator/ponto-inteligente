@@ -9,9 +9,14 @@ import type { User, TimeLog, Signature } from '@/lib/types';
 import { FileSignature, Download, Check, Hourglass, Loader2 } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { TimeSheetDocument } from '../pdf/time-sheet-document';
 import { PDFDownloadLink } from '@react-pdf/renderer';
 import { useEffect, useState } from 'react';
+import dynamic from 'next/dynamic';
+
+const TimeSheetDocument = dynamic(() => import('../pdf/time-sheet-document').then(mod => mod.TimeSheetDocument), {
+  ssr: false,
+  loading: () => <p>Carregando documento...</p>,
+});
 
 interface SignedTimeSheetsProps {
   collaborators: User[];
