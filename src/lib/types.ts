@@ -7,7 +7,7 @@ export type DaySchedule = {
 
 // Changed from weekday keys to date keys (YYYY-MM-DD) for monthly schedule
 export type IndividualSchedule = {
-  [date: string]: DaySchedule | undefined;
+  [date: string]: DaySchedule | null | undefined;
 }
 
 export type User = {
@@ -17,7 +17,7 @@ export type User = {
   role: Role;
   profilePhotoUrl: string;
   profilePhotoDataUri?: string;
-  passwordHash: string;
+  passwordHash?: string;
   team?: string[]; // IDs of users in their team, for supervisors
   workPostId?: string;
   schedule?: IndividualSchedule;

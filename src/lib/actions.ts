@@ -7,7 +7,7 @@ import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import { z } from 'zod';
 import { validateTimeLogsWithFacialRecognition } from '@/ai/flows/validate-time-logs-with-facial-recognition';
-import type { Role, TimeLogAction, IndividualSchedule } from './types';
+import type { User, Role, TimeLogAction, IndividualSchedule } from './types';
 import { getDaysInMonth, startOfMonth, format, addDays } from 'date-fns';
 import { signInWithEmailAndPassword } from 'firebase/auth';
 import { auth as clientAuth } from './firebase';
@@ -272,9 +272,6 @@ export async function saveCollaborator(formData: FormData) {
     if (!id && !data.password) {
         return { error: 'Senha é obrigatória para novos colaboradores.' };
     }
-    if (!id && !profilePhoto && !capturedPhoto) {
-        return { error: 'Foto de perfil é obrigatória para novos colaboradores.' };
-    }
 
     try {
         let profilePhotoUrl: string | undefined = undefined;
@@ -284,18 +281,39 @@ export async function saveCollaborator(formData: FormData) {
         } else if (profilePhoto) {
             profilePhotoUrl = await saveFile(profilePhoto);
         }
-
-        const userData: Partial<User> = { ...data };
-        if(profilePhotoUrl) {
-          userData.profilePhotoUrl = profilePhotoUrl
-        }
         
         if (id) {
+            // UPDATE user
+            const userData: Partial<User> = { ...data };
+            if (profilePhotoUrl) {
+                userData.profilePhotoUrl = profilePhotoUrl;
+            }
             await updateUser(id, userData);
         } else {
-            // addUser will create the user in Firebase Auth and Firestore
-            await addUser(userData as any);
+            // CREATE user
+            if (!adminAuth) throw new Error('Firebase Admin SDK not initialized');
+            
+            const finalPhotoUrl = profilePhotoUrl || 'https://firebasestorage.googleapis.com/v0/b/studio-2096480918-e97c7.appspot.com/o/placeholders%2Fuser.png?alt=media';
+
+            // 1. Create user in Firebase Auth
+            const userRecord = await adminAuth.createUser({
+                email: data.email,
+                password: data.password,
+                displayName: data.name,
+                photoURL: finalPhotoUrl,
+            });
+
+            // 2. Save user data to Firestore
+            const userDataForFirestore = {
+                name: data.name,
+                email: data.email,
+                role: data.role,
+                profilePhotoUrl: finalPhotoUrl,
+                ...(data.workPostId && { workPostId: data.workPostId }),
+            };
+            await admin.firestore().collection('users').doc(userRecord.uid).set(userDataForFirestore);
         }
+
         revalidatePath('/dashboard');
         return { success: true, message: `Colaborador ${id ? 'atualizado' : 'criado'} com sucesso.` };
     } catch (error) {
@@ -452,7 +470,7 @@ export async function saveIndividualSchedule(formData: FormData) {
         if (startTime && endTime) {
             schedule[dateKey] = { start: startTime, end: endTime };
         } else {
-            schedule[dateKey] = undefined;
+            schedule[dateKey] = null; // Use null for empty values, which Firestore accepts
         }
     }
 
@@ -468,9 +486,7 @@ export async function saveIndividualSchedule(formData: FormData) {
 
 const breakTimeSchema = z.object({
     userId: z.string().min(1, 'É necessário selecionar um colaborador.'),
-    breakStartTime: z.string().regex(/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/, 'Formato de hora inválido.').or(z.literal('')),
-    breakEndTime: z.string().regex(/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/, 'Formato de hora inválido.').or(z.literal('')),
-});
+    breakStartTime: z.string().regex(/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/, 'Formato de hora inválido.').or(z.literal('')),    breakEndTime: z.string().regex(/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/, 'Formato de hora inválido.').or(z.literal('')),});
 
 export async function saveBreakTime(formData: FormData) {
     const validatedFields = breakTimeSchema.safeParse(Object.fromEntries(formData.entries()));
@@ -519,3 +535,4 @@ export async function logOccurrence(prevState: any, formData: FormData) {
         return { error: 'Ocorreu um erro ao registrar a ocorrência.' };
     }
 }
+
