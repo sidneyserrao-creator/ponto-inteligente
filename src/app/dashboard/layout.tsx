@@ -1,7 +1,6 @@
 
 import { getCurrentUser } from '@/lib/auth';
 import { redirect } from 'next/navigation';
-import { Logo } from '@/components/icons';
 import { Button } from '@/components/ui/button';
 import { logout } from '@/lib/actions';
 import { LogOut } from 'lucide-react';
@@ -49,7 +48,11 @@ export default async function DashboardLayout({
         <header className="sticky top-0 z-40 w-full border-b bg-background/80 backdrop-blur-sm">
             <div className="container mx-auto flex h-16 items-center justify-between p-4">
                 <div className="flex items-center gap-6">
-                    <Logo className="h-8 w-auto" />
+                    <img
+                      src="/logo.png"
+                      alt="Logo Bit Segurança"
+                      className="mx-auto w-10 h-10 bg-transparent"
+                    />
                     <UserProfile user={user} />
                 </div>
                 <form action={logout}>
