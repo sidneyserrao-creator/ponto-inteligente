@@ -1,3 +1,4 @@
+
 'use client';
 import { useState, useMemo, useRef, useEffect } from 'react';
 import { GlassCard, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/glass-card';
@@ -235,6 +236,15 @@ function CollaboratorForm({ user, workPosts, onFinished }: { user?: User | null,
     );
 }
 
+const getRoleName = (role: Role) => {
+    switch (role) {
+        case 'admin': return 'Administrador';
+        case 'supervisor': return 'Supervisor';
+        case 'collaborator': return 'Colaborador';
+        default: return role;
+    }
+}
+
 export function CollaboratorManager({ collaborators, workPosts }: { collaborators: User[], workPosts: WorkPost[] }) {
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingUser, setEditingUser] = useState<User | null>(null);
@@ -326,7 +336,7 @@ export function CollaboratorManager({ collaborators, workPosts }: { collaborator
                                 </div>
                             </TableCell>
                             <TableCell className="hidden md:table-cell">{user.email}</TableCell>
-                            <TableCell className="hidden lg:table-cell">{user.role}</TableCell>
+                            <TableCell className="hidden lg:table-cell">{getRoleName(user.role)}</TableCell>
                             <TableCell className="hidden lg:table-cell">{getWorkPostName(user.workPostId)}</TableCell>
                             <TableCell className="text-right">
                                 <Button variant="ghost" size="icon" onClick={() => handleEdit(user)}><Edit className="h-4 w-4" /></Button>
@@ -363,4 +373,3 @@ export function CollaboratorManager({ collaborators, workPosts }: { collaborator
     
 
     
-

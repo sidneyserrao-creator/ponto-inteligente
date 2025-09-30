@@ -1,8 +1,9 @@
+
 'use client';
 import { Page, Text, View, Document, StyleSheet, Font, Image } from '@react-pdf/renderer';
 import { format, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import type { User, TimeLog, Signature, DailyTimeLog } from '@/lib/types';
+import type { User, TimeLog, Signature, DailyTimeLog, Role } from '@/lib/types';
 import { useMemo } from 'react';
 
 // Register fonts
@@ -155,6 +156,15 @@ const processLogsForPDF = (logs: TimeLog[]): DailyTimeLog[] => {
     }).sort((a,b) => a.date.localeCompare(b.date));
 };
 
+const getRoleName = (role: Role) => {
+    switch (role) {
+        case 'admin': return 'Administrador';
+        case 'supervisor': return 'Supervisor';
+        case 'collaborator': return 'Colaborador';
+        default: return role;
+    }
+}
+
 
 interface TimeSheetDocumentProps {
     user: User;
@@ -190,7 +200,7 @@ export function TimeSheetDocument({ user, logs, signature }: TimeSheetDocumentPr
             </View>
              <View style={styles.infoField}>
               <Text style={styles.infoLabel}>Função</Text>
-              <Text style={styles.infoValue}>{user.role}</Text>
+              <Text style={styles.infoValue}>{getRoleName(user.role)}</Text>
             </View>
           </View>
         </View>

@@ -1,3 +1,4 @@
+
 import { getCurrentUser } from '@/lib/auth';
 import { redirect } from 'next/navigation';
 import { Logo } from '@/components/icons';
@@ -5,8 +6,17 @@ import { Button } from '@/components/ui/button';
 import { logout } from '@/lib/actions';
 import { LogOut } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import type { User } from '@/lib/types';
+import type { User, Role } from '@/lib/types';
 
+
+const getRoleName = (role: Role) => {
+    switch (role) {
+        case 'admin': return 'Administrador';
+        case 'supervisor': return 'Supervisor';
+        case 'collaborator': return 'Colaborador';
+        default: return role;
+    }
+}
 
 function UserProfile({ user }: { user: User }) {
     const userInitials = user.name.split(' ').map(n => n[0]).join('');
@@ -18,7 +28,7 @@ function UserProfile({ user }: { user: User }) {
             </Avatar>
             <div className="text-left">
                 <p className="font-semibold">{user.name}</p>
-                <p className="text-xs text-muted-foreground">{user.role}</p>
+                <p className="text-xs text-muted-foreground">{getRoleName(user.role)}</p>
             </div>
         </div>
     )
