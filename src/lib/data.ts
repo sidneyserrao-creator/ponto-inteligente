@@ -290,13 +290,12 @@ export async function saveFile(fileOrDataUri: File | string): Promise<string> {
         },
     });
 
-    // Firebase Admin SDK getSignedUrl is complex. A simpler way for public files is to construct the URL.
-    // This assumes the bucket is public or has public-read enabled via rules.
-    const publicUrl = `https://storage.googleapis.com/${bucket.name}/${fileName}`;
-    
-    // To make it truly accessible, we need to make the file public.
+    // Make the file public to get a predictable URL
     await file.makePublic();
-
+    
+    // Construct the public URL
+    const publicUrl = `https://storage.googleapis.com/${bucket.name}/${file.name}`;
+    
     return publicUrl;
 }
 
