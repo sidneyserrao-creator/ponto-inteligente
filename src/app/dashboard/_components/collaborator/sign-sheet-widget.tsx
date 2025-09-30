@@ -9,12 +9,18 @@ import { FileSignature, CheckCircle, Download, Loader2 } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import type { TimeLog, User, Signature } from '@/lib/types';
-import { PDFDownloadLink } from '@react-pdf/renderer';
 
-const TimeSheetDocument = dynamic(() => import('../pdf/time-sheet-document').then(mod => mod.TimeSheetDocument), {
+// Dynamically import the ClientPDF component which internally handles PDFDownloadLink
+const ClientPDF = dynamic(() => import('../pdf/client-pdf').then(mod => mod.ClientPDF), {
   ssr: false,
-  loading: () => <p>Carregando documento...</p>,
+  loading: () => (
+    <Button variant="outline" size="sm" className="mt-4" disabled>
+      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+      Carregando...
+    </Button>
+  ),
 });
+
 
 interface SignSheetWidgetProps {
   user: User;
@@ -25,15 +31,10 @@ interface SignSheetWidgetProps {
 export function SignSheetWidget({ user, logs, initialSignature }: SignSheetWidgetProps) {
   const [signature, setSignature] = useState(initialSignature);
   const [isLoading, setIsLoading] = useState(false);
-  const [isClient, setIsClient] = useState(false);
   const { toast } = useToast();
   const currentDate = new Date();
   const currentMonth = format(currentDate, "MMMM 'de' yyyy", { locale: ptBR });
   const currentMonthYear = format(currentDate, 'yyyy-MM');
-
-  useEffect(() => {
-    setIsClient(true);
-  }, []);
 
   const handleSign = async () => {
     setIsLoading(true);
@@ -54,36 +55,6 @@ export function SignSheetWidget({ user, logs, initialSignature }: SignSheetWidge
     setIsLoading(false);
   };
   
-  const DownloadButton = () => {
-    if (!isClient) {
-      return (
-        <Button variant="outline" size="sm" className="mt-4" disabled>
-          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-          Carregando...
-        </Button>
-      );
-    }
-
-    return (
-      <PDFDownloadLink
-        document={<TimeSheetDocument user={user} logs={logs} signature={signature} />}
-        fileName={`minha-folha-ponto-${currentMonthYear}.pdf`}
-      >
-        {({ loading }) => (
-          <Button variant="outline" size="sm" className="mt-4" disabled={loading}>
-            {loading ? (
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-            ) : (
-              <Download className="mr-2 h-4 w-4" />
-            )}
-            {loading ? 'Gerando...' : 'Baixar Comprovante'}
-          </Button>
-        )}
-      </PDFDownloadLink>
-    );
-  };
-
-
   return (
     <GlassCard>
       <CardHeader>
@@ -101,7 +72,7 @@ export function SignSheetWidget({ user, logs, initialSignature }: SignSheetWidge
             <CheckCircle className="h-10 w-10 text-green-400 mb-2" />
             <p className="font-semibold text-foreground">Ponto Assinado!</p>
             <p className="text-sm text-muted-foreground">Sua folha de ponto para {currentMonth} já foi assinada.</p>
-             {isClient && <DownloadButton />}
+             <ClientPDF user={user} logs={logs} signature={signature} />
           </div>
         ) : (
           <>

@@ -9,14 +9,18 @@ import type { User, TimeLog, Signature } from '@/lib/types';
 import { FileSignature, Download, Check, Hourglass, Loader2 } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { PDFDownloadLink } from '@react-pdf/renderer';
-import { useEffect, useState } from 'react';
 import dynamic from 'next/dynamic';
 
-const TimeSheetDocument = dynamic(() => import('../pdf/time-sheet-document').then(mod => mod.TimeSheetDocument), {
+const ClientPDF = dynamic(() => import('../pdf/client-pdf').then(mod => mod.ClientPDF), {
   ssr: false,
-  loading: () => <p>Carregando documento...</p>,
+  loading: () => (
+      <Button variant="outline" size="sm" disabled>
+          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+          Carregando...
+      </Button>
+  ),
 });
+
 
 interface SignedTimeSheetsProps {
   collaborators: User[];
@@ -26,49 +30,12 @@ interface SignedTimeSheetsProps {
 
 export function SignedTimeSheets({ collaborators, signatureStatus, allTimeLogs }: SignedTimeSheetsProps) {
   const currentMonth = format(new Date(), "MMMM 'de' yyyy", { locale: ptBR });
-  const [isClient, setIsClient] = useState(false);
-
-  useEffect(() => {
-    setIsClient(true);
-  }, []);
 
   const getCollaboratorLogs = (userId: string) => {
     const currentMonthYear = format(new Date(), 'yyyy-MM');
     return allTimeLogs.filter(log => log.userId === userId && log.timestamp.startsWith(currentMonthYear));
   };
-
-  const DownloadButton = ({ user, logs, signature }: { user: User, logs: TimeLog[], signature: Signature | null}) => {
-    if (!isClient) {
-      return (
-          <Button variant="outline" size="sm" disabled>
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              Carregando...
-          </Button>
-      );
-    }
-    
-    return (
-      <PDFDownloadLink
-          document={<TimeSheetDocument user={user} logs={logs} signature={signature} />}
-          fileName={`folha-ponto-${user.name.toLowerCase().replace(' ', '-')}-${format(new Date(), 'MM-yyyy')}.pdf`}
-      >
-          {({ blob, url, loading, error }) =>
-              loading ? (
-                  <Button variant="outline" size="sm" disabled>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Gerando...
-                  </Button>
-              ) : (
-                  <Button variant="outline" size="sm">
-                      <Download className="mr-2 h-4 w-4" />
-                      Baixar PDF
-                  </Button>
-              )
-          }
-      </PDFDownloadLink>
-    )
-  }
-
+  
   return (
     <GlassCard>
       <CardHeader>
@@ -122,8 +89,8 @@ export function SignedTimeSheets({ collaborators, signatureStatus, allTimeLogs }
                       )}
                     </TableCell>
                     <TableCell className="text-right">
-                       {isClient && isSigned && userLogs.length > 0 ? (
-                          <DownloadButton user={user} logs={userLogs} signature={signature} />
+                       {isSigned && userLogs.length > 0 ? (
+                          <ClientPDF user={user} logs={userLogs} signature={signature} />
                         ) : (
                           <Button variant="outline" size="sm" disabled>
                             <Download className="mr-2 h-4 w-4" />
