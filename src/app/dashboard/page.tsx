@@ -41,11 +41,9 @@ export default async function DashboardPage() {
         const allLogs = await getAllTimeLogs();
         const allWorkposts = await getWorkPosts();
         
-        // Correctly find supervised posts
         const supervisedPosts = allWorkposts.filter(p => p.supervisorId === user.id);
         const supervisedPostIds = supervisedPosts.map(p => p.id);
 
-        // Correctly find team members based on supervised posts
         const teamMembers = allUsersForSupervisor.filter(u => u.workPostId && supervisedPostIds.includes(u.workPostId));
 
         const teamLogs = teamMembers.map(member => ({

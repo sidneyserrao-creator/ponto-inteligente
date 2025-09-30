@@ -470,7 +470,7 @@ export async function saveIndividualSchedule(formData: FormData) {
         if (startTime && endTime) {
             schedule[dateKey] = { start: startTime, end: endTime };
         } else {
-            schedule[dateKey] = null; // Use null for empty values, which Firestore accepts
+            schedule[dateKey] = null;
         }
     }
 
@@ -535,4 +535,5 @@ export async function logOccurrence(prevState: any, formData: FormData) {
         return { error: 'Ocorreu um erro ao registrar a ocorrência.' };
     }
 }
+
 
