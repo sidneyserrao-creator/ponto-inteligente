@@ -13,6 +13,12 @@ interface MyPayslipsProps {
 }
 
 export function MyPayslips({ payslips }: MyPayslipsProps) {
+
+  const handleDownload = (fileUrl: string) => {
+    // Abre a URL do arquivo em uma nova aba para iniciar o download
+    window.open(fileUrl, '_blank');
+  };
+
   return (
     <GlassCard>
       <CardHeader>
@@ -35,7 +41,7 @@ export function MyPayslips({ payslips }: MyPayslipsProps) {
                     </p>
                   </div>
                 </div>
-                <Button variant="ghost" size="icon" onClick={() => alert('Download iniciado!')}>
+                <Button variant="ghost" size="icon" onClick={() => handleDownload(payslip.fileUrl)}>
                   <Download className="h-5 w-5" />
                 </Button>
               </div>
