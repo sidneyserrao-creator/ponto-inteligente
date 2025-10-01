@@ -185,7 +185,7 @@ export function TimeSheetDocument({ user, logs, signature }: TimeSheetDocumentPr
     <Document>
       <Page size="A4" style={styles.page}>
         <View style={styles.header}>
-           <Image style={styles.logo} src="/logo.png" />
+           <Image style={styles.logo} src="https://firebasestorage.googleapis.com/v0/b/studio-2096480918-e97c7.appspot.com/o/logo.png?alt=media" />
           <View style={styles.headerText}>
             <Text style={styles.companyName}>Bit Segurança</Text>
             <Text style={styles.documentTitle}>Folha de Ponto - {monthYear}</Text>
