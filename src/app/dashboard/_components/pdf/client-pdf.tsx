@@ -26,12 +26,12 @@ export function ClientPDF({ user, logs, signature }: ClientPDFProps) {
     ? `minha-folha-ponto-${currentMonthYear}.pdf`
     : `folha-ponto-${user.name.toLowerCase().replace(/ /g, '-')}-${currentMonthYear}.pdf`;
 
-  const buttonProps = user.role === 'collaborator' 
+    const buttonProps = user.role === 'collaborator' 
     ? { variant: "outline" as const, size: "sm" as const, className: "mt-4" }
     : { variant: "outline" as const, size: "sm" as const };
 
-  if (!isClient || !signature) {
-     return (
+  if (!isClient || !user || !logs || !signature) {
+      return (
       <Button {...buttonProps} disabled>
           <Loader2 className="mr-2 h-4 w-4 animate-spin" />
           Carregando...

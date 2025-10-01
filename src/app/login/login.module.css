@@ -1,0 +1,59 @@
+
+.main {
+  background: linear-gradient(to bottom, #041b46, #0a2a73);
+}
+
+.neonBorder {
+  position: relative;
+  padding: 2px;
+  border-radius: 1.5rem;
+  overflow: visible;
+}
+
+.neonBorder::before {
+  --a: 0deg;
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  padding: 2px;
+  background: conic-gradient(from var(--a), transparent 0turn 0.12turn, rgba(59,130,246,0.95) 0.16turn 0.20turn, transparent 0.24turn 1turn);
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  filter: blur(1px);
+  animation: neon-sweep 4s linear infinite reverse;
+}
+
+.logoSun {
+  position: relative;
+}
+
+.logoSun::before {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 260px;
+  height: 260px;
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+  z-index: -1;
+  background: radial-gradient(circle, rgba(59, 130, 246, 0.5) 0%, rgba(59, 130, 246, 0) 70%);
+  filter: blur(30px);
+}
+
+.newCard {
+  border-radius: 30px;
+  background: hsl(var(--card) / 0.6);
+  box-shadow: rgba(50, 50, 93, 0.25) 0px 30px 50px -12px inset, rgba(0, 0, 0, 0.3) 0px 18px 26px -18px inset;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+/* Make sure the neon-sweep animation is defined in a global css file, like src/app/globals.css */
+/*
+@keyframes neon-sweep {
+  from { --a: 0deg; }
+  to { --a: 360deg; }
+}
+*/

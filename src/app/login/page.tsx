@@ -2,84 +2,20 @@ import { Logo } from '@/components/icons';
 import { LoginForm } from './_components/login-form';
 import { GlassCard, CardHeader, CardContent } from '@/components/glass-card';
 import Image from 'next/image';
-
-const pageStyles = {
-  main: {
-    background: 'linear-gradient(to bottom, #041b46, #0a2a73)',
-  },
-  neonBorder: {
-    position: 'relative' as const,
-    padding: '2px',
-    borderRadius: '1.5rem',
-    overflow: 'visible' as const,
-  },
-  neonBorderBefore: {
-    '--a': '0deg',
-    content: '""',
-    position: 'absolute' as const,
-    inset: 0,
-    borderRadius: 'inherit',
-    padding: '2px',
-    background:
-      'conic-gradient(from var(--a), transparent 0turn 0.12turn, rgba(59,130,246,0.95) 0.16turn 0.20turn, transparent 0.24turn 1turn)',
-    WebkitMask: 'linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0)',
-    WebkitMaskComposite: 'xor' as const,
-    maskComposite: 'exclude',
-    filter: 'blur(1px)',
-    animation: 'neon-sweep 4s linear infinite reverse',
-  },
-  logoSun: {
-    position: 'relative' as const,
-  },
-  logoSunBefore: {
-    content: '""',
-    position: 'absolute' as const,
-    top: '50%',
-    left: '50%',
-    width: '260px',
-    height: '260px',
-    borderRadius: '50%',
-    transform: 'translate(-50%, -50%)',
-    zIndex: -1,
-    background: 'radial-gradient(circle, rgba(59, 130, 246, 0.5) 0%, rgba(59, 130, 246, 0) 70%)',
-    filter: 'blur(30px)',
-  },
-  newCard: {
-    borderRadius: '30px',
-    background: 'hsl(var(--card) / 0.6)',
-    boxShadow: 'rgba(50, 50, 93, 0.25) 0px 30px 50px -12px inset, rgba(0, 0, 0, 0.3) 0px 18px 26px -18px inset',
-    border: '1px solid rgba(255, 255, 255, 0.1)'
-  }
-};
+import styles from './login.module.css';
 
 export default function LoginPage() {
   return (
     <>
-      <style>
-        {`
-          @property --a {
-            syntax: "<angle>";
-            initial-value: 0deg;
-            inherits: false;
-          }
-          @keyframes neon-sweep {
-            to { --a: 360deg; }
-          }
-        `}
-      </style>
       <main
-        className="flex min-h-screen items-center justify-center px-4 text-white"
-        style={pageStyles.main}
+        className={`${styles.main} flex min-h-screen items-center justify-center px-4 text-white`}
       >
-        <div style={pageStyles.neonBorder} className="w-full max-w-sm sm:max-w-md lg:max-w-lg">
-          <div style={pageStyles.neonBorderBefore} />
+        <div className={`${styles.neonBorder} w-full max-w-sm sm:max-w-md lg:max-w-lg`}>
           <GlassCard
-            className="w-full backdrop-blur-md shadow-lg shadow-black/30"
-            style={pageStyles.newCard}
+            className={`${styles.newCard} w-full backdrop-blur-md shadow-lg shadow-black/30`}
           >
             <CardHeader>
-              <div style={pageStyles.logoSun}>
-                <div style={pageStyles.logoSunBefore} />
+              <div className={styles.logoSun}>
                 <img
                   src="/logo.png"
                   alt="Logo Bit Segurança"
