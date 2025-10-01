@@ -1,4 +1,5 @@
 
+
 import { db as clientDb, storage as clientStorage, auth as clientAuth } from './firebase';
 import { 
     collection, 
@@ -38,6 +39,11 @@ const fromAdminFirestore = <T extends { id: string }>(snapshot: admin.firestore.
         }
     }
     
+    // Ensure photoUrl is not an empty string
+    if (data.photoUrl === '') {
+      delete data.photoUrl;
+    }
+
     return {
         id: snapshot.id,
         ...data
