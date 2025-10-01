@@ -1,3 +1,4 @@
+import 'dotenv/config';
 import admin from 'firebase-admin';
 
 // Verifica se o Firebase já foi inicializado para evitar erros.
