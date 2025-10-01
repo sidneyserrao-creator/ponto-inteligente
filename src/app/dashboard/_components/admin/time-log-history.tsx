@@ -119,7 +119,7 @@ export function TimeLogHistory({ allUsers, allTimeLogs }: TimeLogHistoryProps) {
                         <ValidationStatus validation={log.validation} />
                       </TableCell>
                       <TableCell>
-                        {typeof log.photoUrl === 'string' && log.photoUrl.length > 0 && (
+                        {log.photoUrl && (
                           <Image
                             src={log.photoUrl}
                             alt={`Foto de ${log.action}`}
