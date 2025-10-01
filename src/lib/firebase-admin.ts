@@ -1,33 +1,34 @@
 
 import admin from 'firebase-admin';
 
-// Adicione uma verificação robusta para garantir que as variáveis de ambiente existam.
-if (
-  !process.env.FIREBASE_PROJECT_ID ||
-  !process.env.FIREBASE_CLIENT_EMAIL ||
-  !process.env.FIREBASE_PRIVATE_KEY
-) {
+let serviceAccount;
+try {
+    if (process.env.FIREBASE_ADMIN_CREDENTIALS) {
+        serviceAccount = JSON.parse(process.env.FIREBASE_ADMIN_CREDENTIALS);
+    }
+} catch (error) {
+    console.error("Error parsing FIREBASE_ADMIN_CREDENTIALS:", error);
+}
+
+
+if (!serviceAccount) {
   console.error(
-    'As variáveis de ambiente do Firebase Admin não estão configuradas. O SDK Admin não será inicializado.'
+    'As credenciais de serviço do Firebase Admin não estão configuradas corretamente na variável de ambiente FIREBASE_ADMIN_CREDENTIALS. O SDK Admin não será inicializado.'
   );
 } else {
-  // Verifica se o Firebase já foi inicializado para evitar erros.
   if (!admin.apps.length) {
-    admin.initializeApp({
-      credential: admin.credential.cert({
-        project_id: process.env.FIREBASE_PROJECT_ID,
-        client_email: process.env.FIREBASE_CLIENT_EMAIL,
-        private_key: (process.env.FIREBASE_PRIVATE_KEY || '').replace(
-          /\\n/g,
-          '\n'
-        ),
-      }),
-      storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
-    });
+    try {
+      admin.initializeApp({
+        credential: admin.credential.cert(serviceAccount),
+        storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
+      });
+    } catch (error) {
+        console.error("Failed to initialize Firebase Admin SDK:", error);
+    }
   }
 }
 
-// Inicializa as exportações, mas elas podem não funcionar se a inicialização falhar.
+// Initialize exports, but they might not work if initialization fails.
 let auth: admin.auth.Auth;
 let db: admin.firestore.Firestore;
 let storage: admin.storage.Storage;
@@ -37,7 +38,7 @@ if (admin.apps.length) {
   db = admin.firestore();
   storage = admin.storage();
 } else {
-  // @ts-ignore - Fornece um fallback para evitar que a aplicação quebre totalmente
+  // @ts-ignore - Provide a fallback to prevent the app from crashing completely
   auth = null;
   // @ts-ignore
   db = null;
