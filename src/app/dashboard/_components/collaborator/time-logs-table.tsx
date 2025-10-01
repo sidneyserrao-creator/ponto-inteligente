@@ -65,7 +65,7 @@ export function TimeLogsTable({ timeLogs }: TimeLogsTableProps) {
                       <ValidationStatus validation={log.validation} />
                     </TableCell>
                     <TableCell>
-                      {log.photoUrl && (
+                      {typeof log.photoUrl === 'string' && log.photoUrl.length > 0 && (
                         <Image
                           src={log.photoUrl}
                           alt={`Foto de ${log.action}`}
