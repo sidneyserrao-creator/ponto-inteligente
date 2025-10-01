@@ -1,3 +1,4 @@
+
 'use client';
 
 import { GlassCard, CardHeader, CardTitle, CardContent } from '@/components/glass-card';
@@ -19,6 +20,9 @@ export function MyPayslips({ payslips }: MyPayslipsProps) {
 
   const handleDownload = async (filePath: string) => {
     try {
+      if (!filePath) {
+        throw new Error("Caminho do arquivo não encontrado.");
+      }
       const storage = getStorage();
       const fileRef = ref(storage, filePath);
       const url = await getDownloadURL(fileRef);
@@ -71,3 +75,6 @@ export function MyPayslips({ payslips }: MyPayslipsProps) {
     </GlassCard>
   );
 }
+
+
+    

@@ -229,7 +229,7 @@ export async function uploadPayslip(formData: FormData) {
         await addPayslip({
             userId,
             fileName: file.name,
-            fileUrl: fileUrl, // Use the URL returned from saveFile
+            fileUrl: filePath, // Use the path for storage reference
         });
 
         revalidatePath('/dashboard');
@@ -555,3 +555,5 @@ export async function logOccurrence(prevState: any, formData: FormData) {
 }
 
 
+
+    

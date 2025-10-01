@@ -299,8 +299,12 @@ export async function saveFile(fileOrDataUri: File | string, customPath?: string
         },
     });
     
-    // Return the full path, NOT a public URL
-    return fileName;
+    // Return the public URL
+    const [url] = await file.getSignedUrl({
+      action: 'read',
+      expires: '03-09-2491', // Far future expiration date
+    });
+    return url;
 }
 
 // --- Signature Functions ---
@@ -367,3 +371,6 @@ export const addOccurrence = async (occurrence: Omit<Occurrence, 'id' | 'created
     return { id: docRef.id, ...newOccurrence };
 };
 
+
+
+    
