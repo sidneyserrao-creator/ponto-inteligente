@@ -1,4 +1,3 @@
-import { Logo } from '@/components/icons';
 import { LoginForm } from './_components/login-form';
 import { GlassCard, CardHeader, CardContent } from '@/components/glass-card';
 import Image from 'next/image';
@@ -16,10 +15,13 @@ export default function LoginPage() {
           >
             <CardHeader>
               <div className={styles.logoSun}>
-                <img
+                <Image
                   src="/logo.png"
                   alt="Logo Bit Segurança"
+                  width={128}
+                  height={128}
                   className="mx-auto w-24 h-24 sm:w-28 sm:h-28 md:w-32 md:h-32 bg-transparent"
+                  priority
                 />
               </div>
               <h1 className="pt-4 text-center text-xl sm:text-2xl font-semibold">
