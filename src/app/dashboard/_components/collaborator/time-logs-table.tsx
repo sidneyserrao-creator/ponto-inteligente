@@ -67,7 +67,7 @@ export function TimeLogsTable({ timeLogs }: TimeLogsTableProps) {
                     <TableCell>
                       {typeof log.photoUrl === 'string' && log.photoUrl.length > 0 && (
                         <Image
-                          src={`/${log.photoUrl}`}
+                          src={log.photoUrl}
                           alt={`Foto de ${log.action}`}
                           width={40}
                           height={40}
