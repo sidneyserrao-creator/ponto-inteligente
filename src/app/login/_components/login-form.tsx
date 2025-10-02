@@ -31,11 +31,21 @@ export function LoginForm() {
       const idToken = await userCredential.user.getIdToken();
 
       // 2. Pass the token to the server action to create the session cookie
-      await login(idToken);
+      const result = await login(idToken);
+      
+      // 3. Check for server-side errors returned from the action
+      if (result?.error) {
+          toast({
+              variant: 'destructive',
+              title: 'Erro no Servidor',
+              description: result.error,
+          });
+          setIsLoading(false);
+          return;
+      }
 
       // If login is successful, the server action will redirect.
-      // The code below might not even be reached if the redirect is fast enough.
-      // We don't need to do anything here.
+      // We don't need to do anything else here.
 
     } catch (error: any) {
         // Handle the specific NEXT_REDIRECT error from server actions
@@ -46,8 +56,10 @@ export function LoginForm() {
         }
 
        let errorMessage = 'Ocorreu um erro de autenticação. Verifique suas credenciais.';
-       if (error.code) {
-           switch (error.code) {
+       // Check for Firebase client-side auth errors
+       const firebaseErrorCode = error.code || error.error?.code;
+       if (firebaseErrorCode) {
+           switch (firebaseErrorCode) {
                case 'auth/user-not-found':
                case 'auth/wrong-password':
                case 'auth/invalid-credential':

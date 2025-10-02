@@ -1,7 +1,7 @@
 
 'use server';
 
-import { createSession, deleteSession, getCurrentUser } from '@/lib/auth';
+import { createSession, deleteSession, getCurrentUser, SESSION_COOKIE_NAME, expiresIn } from '@/lib/auth';
 import { findUserByEmail, addTimeLog, addAnnouncement, deleteAnnouncement, addPayslip, updateTimeLog, findUserById, addUser, updateUser, deleteUser, addWorkPost, addWorkShift, saveFile, addSignature, updateWorkPost, deleteWorkPost, updateWorkShift, removeWorkShift as removeDataWorkShift, updateUserSchedule, addOccurrence, getWorkPosts } from '@/lib/data';
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
@@ -13,6 +13,7 @@ import { signInWithEmailAndPassword } from 'firebase/auth';
 import { auth as clientAuth } from './firebase';
 import admin from 'firebase-admin';
 import { auth as adminAuth } from './firebase-admin';
+import { cookies } from 'next/headers';
 
 /**
  * Creates the initial admin user if they don't exist.
@@ -73,15 +74,27 @@ export async function login(idToken: string) {
     if (!idToken) {
       return { error: 'Token de autenticação não fornecido.' };
     }
-    await createSession(idToken);
+    
+    const sessionCookie = await createSession(idToken);
+    
+    cookies().set(SESSION_COOKIE_NAME, sessionCookie, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        maxAge: expiresIn,
+        path: '/',
+    });
+    
+    // Redirect only on successful session creation
+    revalidatePath('/');
+    redirect('/dashboard');
     
   } catch (error: any) {
+    if (error.digest?.includes('NEXT_REDIRECT')) {
+      throw error;
+    }
     console.error('Server Action login failed:', error);
-    return { error: 'Falha ao criar sessão. Ocorreu um erro inesperado no servidor.' };
+    return { error: 'Falha ao criar sessão. Verifique suas credenciais ou contate o suporte.' };
   }
-  
-  revalidatePath('/');
-  redirect('/dashboard');
 }
 
 export async function logout() {

@@ -3,7 +3,7 @@ import { redirect } from 'next/navigation';
 import type { User, Announcement, WorkPost, WorkShift, TimeLog, Payslip, Signature, Occurrence } from '@/lib/types';
 import { getAnnouncements, getTimeLogsForUser, getUsers, getPayslipsForUser, getAllTimeLogs, getWorkPosts, getSignatureForUser, getAllSignatures, getWorkShifts, getOccurrences } from '@/lib/data';
 import { format } from 'date-fns';
-import { DashboardClientLoader } from './_components/dashboard-client-loader';
+import DashboardClientLoader from './_components/dashboard-client-loader';
 
 export default async function DashboardPage() {
   const user = await getCurrentUser();

@@ -45,27 +45,20 @@ service cloud.firestore {
 
     // 2. Coleção `timeLogs`
     match /timeLogs/{logId} {
-      function isLogOwner() { 
-        return request.resource.data.userId == request.auth.uid; 
-      }
-      function getLogOwnerSupervisorId() {
-        return getUserData(request.resource.data.userId).supervisorId;
-      }
-
       // LEITURA: Admin, o dono do registro, ou o supervisor do dono.
-      allow read: if isAdmin() || isLogOwner() || (isSupervisor() && getLogOwnerSupervisorId() == request.auth.uid);
+      allow read: if isAdmin() || resource.data.userId == request.auth.uid || (isSupervisor() && getUserData(resource.data.userId).supervisorId == request.auth.uid);
 
       // CRIAÇÃO: O usuário pode criar um registro apenas para si mesmo.
       allow create: if request.resource.data.userId == request.auth.uid;
 
       // ATUALIZAÇÃO: Admins ou o supervisor (para ajustes manuais).
-      allow update: if isAdmin() || (isSupervisor() && getLogOwnerSupervisorId() == request.auth.uid);
+      allow update: if isAdmin() || (isSupervisor() && getUserData(resource.data.userId).supervisorId == request.auth.uid);
     }
 
     // 3. Coleção `payslips`
     match /payslips/{payslipId} {
       // LEITURA: Admin ou o dono do contracheque.
-      allow read: if isAdmin() || request.resource.data.userId == request.auth.uid;
+      allow read: if isAdmin() || resource.data.userId == request.auth.uid;
       
       // ESCRITA (Criar, Atualizar, Excluir): Apenas admins.
       allow write: if isAdmin();

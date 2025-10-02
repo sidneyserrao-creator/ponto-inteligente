@@ -27,13 +27,12 @@ service firebase.storage {
     }
 
     // 2. Uploads de Fotos (Ponto e Perfil)
-    // Caminho: /uploads/{fileName}
-    match /uploads/{allPaths=**} {
-      // LEITURA e ESCRITA: Permite que qualquer usuário autenticado leia e escreva.
-      // Isso é necessário para que os usuários possam fazer upload de suas fotos de ponto
-      // e para que os admins possam ver essas fotos.
-      // A segurança aqui depende da dificuldade de adivinhar o nome do arquivo, que inclui um timestamp.
-      allow read, write: if isAuthenticated();
+    // Caminho: /uploads/{userId}/{fileName}
+    match /uploads/{userId}/{allPaths=**} {
+      // LEITURA: O dono do arquivo ou um admin.
+      allow read: if isAdmin() || request.auth.uid == userId;
+      // ESCRITA: Apenas o dono do arquivo pode escrever.
+      allow write: if request.auth.uid == userId;
     }
 
      // 3. Placeholder de usuário

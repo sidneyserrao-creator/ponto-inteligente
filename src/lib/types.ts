@@ -116,3 +116,11 @@ export type WorkPostUpdateData = Partial<WorkPostCreationData>;
 
 export type WorkShiftCreationData = Omit<WorkShift, 'id'>;
 export type WorkShiftUpdateData = Partial<WorkShiftCreationData>;
+
+export type BreakTime = {
+  id: string;
+  name: string;
+  startTime: string;
+  endTime: string;
+  workPostId: string;
+};

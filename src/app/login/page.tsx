@@ -40,7 +40,6 @@ export default function LoginPage() {
                   width={140}
                   height={45}
                   className="mx-auto"
-                  style={{ height: 'auto' }}
                 />
               </div>
             </CardContent>

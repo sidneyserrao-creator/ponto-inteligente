@@ -7,25 +7,21 @@ import { auth as adminAuth } from './firebase-admin';
 export const SESSION_COOKIE_NAME = 'bit_seguranca_session';
 export const expiresIn = 60 * 60 * 24 * 5 * 1000; // 5 days
 
-export async function createSession(idToken: string) {
+/**
+ * Cria o valor do cookie de sessão, mas não o define.
+ * Retorna o valor do cookie para ser definido pela Server Action.
+ */
+export async function createSession(idToken: string): Promise<string> {
     if (!adminAuth) throw new Error('Firebase Admin SDK not initialized');
     
     try {
-        // Generate session cookie.
         const sessionCookie = await adminAuth.createSessionCookie(idToken, { expiresIn });
-        cookies().set(SESSION_COOKIE_NAME, sessionCookie, {
-            httpOnly: true,
-            secure: process.env.NODE_ENV === 'production',
-            maxAge: expiresIn,
-            path: '/',
-        });
+        return sessionCookie;
     } catch (error) {
-        console.error('Error creating session cookie:', error);
-        // This is a critical error, re-throw it so the calling function can handle it.
-        throw new Error('Failed to create session cookie.');
+        console.error('Error creating session cookie value:', error);
+        throw error; // Re-lança o erro para ser tratado pela função que a chamou
     }
 }
-
 
 export async function getSession(): Promise<{ uid: string } | null> {
     if (!adminAuth) return null;
@@ -36,8 +32,6 @@ export async function getSession(): Promise<{ uid: string } | null> {
             const decodedClaims = await adminAuth.verifySessionCookie(sessionCookie.value, true);
             return { uid: decodedClaims.uid };
         } catch (error) {
-            // This is an expected error if the cookie is invalid.
-            // We can clear the invalid cookie.
             console.warn('Invalid session cookie:', error);
             cookies().delete(SESSION_COOKIE_NAME);
             return null;

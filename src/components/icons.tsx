@@ -1,18 +1,23 @@
 import type { SVGProps } from 'react';
 import Image from 'next/image';
 
+// A definição de props é ajustada para extrair e ignorar `width` e `height`,
+// evitando conflitos com as props do componente `Image` do Next.js.
 export function Logo(props: Omit<React.ImgHTMLAttributes<HTMLImageElement>, 'src'>) {
-  // O logo.png deve estar na pasta /public na raiz do projeto.
   const logoUrl = "/logo.png";
+  
+  // Desestrutura para remover width e height das props repassadas
+  const { width, height, ...rest } = props;
 
-  // Use o componente Image do Next.js para otimização.
   return (
     <Image
       src={logoUrl}
       alt="Bit Segurança Logo"
-      width={200} // Largura base para a otimização
-      height={80} // Altura base para a otimização
-      {...props}
+      // Define width e height fixos e numéricos para o Next.js
+      width={200}
+      height={80}
+      // Repassa o restante das props
+      {...rest}
     />
   );
 }

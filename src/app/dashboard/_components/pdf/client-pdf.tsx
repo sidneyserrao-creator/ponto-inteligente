@@ -1,7 +1,7 @@
 'use client';
 
-import { PDFDownloadLink } from '@react-pdf/renderer';
-import { Button } from '@/components/ui/button';
+import { PDFDownloadLink, BlobProviderParams } from '@react-pdf/renderer';
+import { Button, ButtonProps } from '@/components/ui/button';
 import { Download, Loader2 } from 'lucide-react';
 import { format } from 'date-fns';
 import type { TimeLog, User, Signature } from '@/lib/types';
@@ -26,11 +26,16 @@ export function ClientPDF({ user, logs, signature }: ClientPDFProps) {
     ? `minha-folha-ponto-${currentMonthYear}.pdf`
     : `folha-ponto-${user.name.toLowerCase().replace(/ /g, '-')}-${currentMonthYear}.pdf`;
 
-    const buttonProps = user.role === 'collaborator' 
-    ? { variant: "outline" as const, size: "sm" as const, className: "mt-4" }
-    : { variant: "outline" as const, size: "sm" as const };
+  const buttonVariant = "outline" as const;
+  const buttonSize = "sm" as const;
 
-  if (!isClient || !user || !logs || !signature) {
+  const buttonProps: ButtonProps = {
+    variant: buttonVariant,
+    size: buttonSize,
+    className: user.role === 'collaborator' ? "mt-4" : "",
+  };
+
+  if (!isClient) {
       return (
       <Button {...buttonProps} disabled>
           <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -44,7 +49,12 @@ export function ClientPDF({ user, logs, signature }: ClientPDFProps) {
       document={<TimeSheetDocument user={user} logs={logs} signature={signature} />}
       fileName={fileName}
     >
-      {({ loading }) => (
+      {/* 
+        Isto é uma solução alternativa para uma incompatibilidade de tipo conhecida entre @react-pdf/renderer e React 18.
+        O padrão de função como filha está correto, mas a inferência do TypeScript falha.
+        A coerção da função inteira para 'any' ignora a verificação de tipo sem afetar o comportamento em tempo de execução.
+      */}
+      {(({ loading }: BlobProviderParams) => (
         <Button {...buttonProps} disabled={loading}>
           {loading ? (
             <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -53,7 +63,7 @@ export function ClientPDF({ user, logs, signature }: ClientPDFProps) {
           )}
           {loading ? 'Gerando...' : (user.role === 'collaborator' ? 'Baixar Comprovante' : 'Baixar PDF')}
         </Button>
-      )}
+      )) as any}
     </PDFDownloadLink>
   );
 }
