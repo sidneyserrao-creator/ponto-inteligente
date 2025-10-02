@@ -1,43 +1,45 @@
 rules_version = '2';
 
+// Regras para o Firebase Storage
 service firebase.storage {
   match /b/{bucket}/o {
 
-    // --- Funções Auxiliares ---
-    function isAuthenticated() {
-      return request.auth != null;
+    // Regra geral: por padrão, ninguém pode ler ou escrever, a menos que permitido abaixo.
+    match /{allPaths=**} {
+      allow read, write: if false;
     }
 
-    function getFirestoreUser(userId) {
-      return firestore.get(/databases/(default)/documents/users/$(userId)).data;
+    // --- Regras de Upload ---
+
+    // Fotos de perfil: Apenas o próprio usuário autenticado pode fazer upload/atualizar sua foto.
+    // O nome do arquivo deve corresponder ao ID do usuário.
+    match /profile-photos/{userId}/{fileName} {
+      allow write: if request.auth != null && request.auth.uid == userId;
+      allow read: if request.auth != null; // Todos os usuários autenticados podem ver fotos de perfil.
     }
 
-    function isAdmin() {
-      return isAuthenticated() && getFirestoreUser(request.auth.uid).role == 'admin';
+    // Fotos de ponto (clock-in/out): Apenas o usuário autenticado pode criar.
+    // Ninguém pode sobrescrever ou deletar (garante a imutabilidade do registro).
+    match /time-log-photos/{userId}/{fileName} {
+      allow read: if request.auth != null; // Supervisores e admins podem precisar ler.
+      allow create: if request.auth != null && request.auth.uid == userId;
+      allow update, delete: if false;
     }
-
-    // 1. Arquivos de Contracheque (Payslips)
-    // Caminho seguro: /payslips/{userId}/{fileName}
-    match /payslips/{userId}/{allPaths=**} {
-      // LEITURA: O dono do contracheque (cujo UID bate com o {userId} no caminho) ou um admin.
-      allow read: if isAdmin() || request.auth.uid == userId;
-      
-      // ESCRITA: Apenas admins podem fazer upload ou deletar contracheques.
-      allow write: if isAdmin();
+    
+    // Contracheques (Payslips): Apenas um usuário com a claim de 'admin' pode fazer upload.
+    // O próprio colaborador pode ler seus contracheques.
+    match /payslips/{userId}/{fileName} {
+      allow write: if request.auth != null && request.auth.token.role == 'admin';
+      allow read: if request.auth != null && (request.auth.uid == userId || request.auth.token.role == 'admin');
     }
-
-    // 2. Uploads de Fotos (Ponto e Perfil)
-    // Caminho: /uploads/{userId}/{fileName}
-    match /uploads/{userId}/{allPaths=**} {
-      // LEITURA: O dono do arquivo ou um admin.
-      allow read: if isAdmin() || request.auth.uid == userId;
-      // ESCRITA: Apenas o dono do arquivo pode escrever.
-      allow write: if request.auth.uid == userId;
+    
+    // Arquivos de ocorrências (ex: atestados médicos)
+    match /occurrence-files/{userId}/{fileName} {
+      // O admin/supervisor pode enviar em nome do colaborador ou o próprio colaborador pode anexar.
+      allow write: if request.auth != null && (request.auth.uid == userId || request.auth.token.role in ['admin', 'supervisor']);
+      // Apenas o próprio usuário, supervisor ou admin podem ler.
+      allow read: if request.auth != null && (request.auth.uid == userId || request.auth.token.role in ['admin', 'supervisor']);
     }
-
-     // 3. Placeholder de usuário
-    match /placeholders/{allPaths=**} {
-      allow read: if true;
-    }
+    
   }
 }

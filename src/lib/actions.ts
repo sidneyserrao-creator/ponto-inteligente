@@ -21,7 +21,7 @@ import { cookies } from 'next/headers';
  */
 export async function createInitialAdminUser() {
   if (!adminAuth) {
-    console.error("createInitialAdminUser: Firebase Admin Auth SDK não inicializado.");
+    console.error("createInitialAdminUser: Firebase Admin SDK não inicializado.");
     return { success: false, error: "Admin SDK não está pronto." };
   }
   
