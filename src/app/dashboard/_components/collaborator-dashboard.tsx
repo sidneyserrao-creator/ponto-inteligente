@@ -1,35 +1,27 @@
-import type { User, TimeLog, Announcement, Payslip, Signature } from '@/lib/types';
-import { Announcements } from './announcements';
-import { ClockWidget } from './collaborator/clock-widget';
-import { TimeLogsTable } from './collaborator/time-logs-table';
-import { MyPayslips } from './collaborator/my-payslips';
-import { SignSheetWidget } from './collaborator/sign-sheet-widget';
-import { MyScheduleWidget } from './collaborator/my-schedule-widget';
+import { getAnnouncements, getTimeLogsForUser, getPayslipsForUser, getSignatureForUser } from '@/lib/data';
+import { format } from 'date-fns';
+import CollaboratorDashboardClient from './collaborator-dashboard-client';
+import type { User, DailyBreakSchedule } from '@/lib/types';
 
-interface CollaboratorDashboardProps {
-  user: User;
-  announcements: Announcement[];
-  timeLogs: TimeLog[];
-  payslips: Payslip[];
-  signature: Signature | null;
-}
+// Aceita a nova prop breakSchedule
+export default async function CollaboratorDashboard({ user, breakSchedule }: { user: User; breakSchedule: DailyBreakSchedule | null }) {
+  const allAnnouncements = await getAnnouncements();
+  const currentMonthYear = format(new Date(), 'yyyy-MM');
 
-export function CollaboratorDashboard({ user, announcements, timeLogs, payslips, signature }: CollaboratorDashboardProps) {
-  // We no longer need to fetch the image and convert to data URI here
-  // because the facial recognition flow will do it.
-  
+  const [timeLogs, payslips, signature] = await Promise.all([
+    getTimeLogsForUser(user.id),
+    getPayslipsForUser(user.id),
+    getSignatureForUser(user.id, currentMonthYear),
+  ]);
+
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-      <div className="lg:col-span-2 space-y-6">
-        <ClockWidget user={user} timeLogs={timeLogs} />
-        <TimeLogsTable timeLogs={timeLogs} />
-      </div>
-      <div className="space-y-6">
-        <MyScheduleWidget user={user} />
-        <SignSheetWidget user={user} logs={timeLogs} initialSignature={signature} />
-        <Announcements announcements={announcements} user={user} />
-        <MyPayslips payslips={payslips} />
-      </div>
-    </div>
+    <CollaboratorDashboardClient
+      user={user}
+      announcements={allAnnouncements}
+      timeLogs={timeLogs}
+      payslips={payslips}
+      signature={signature}
+      breakSchedule={breakSchedule} // Repassa a prop para o componente cliente
+    />
   );
 }

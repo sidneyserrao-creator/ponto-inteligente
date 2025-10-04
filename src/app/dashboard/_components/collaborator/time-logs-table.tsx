@@ -7,7 +7,6 @@ import type { TimeLog } from '@/lib/types';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { Clock, Play, Coffee, LogOut, CheckCircle, XCircle, AlertTriangle } from 'lucide-react';
-import Image from 'next/image';
 
 interface TimeLogsTableProps {
   timeLogs: TimeLog[];
@@ -45,7 +44,6 @@ export function TimeLogsTable({ timeLogs }: TimeLogsTableProps) {
                 <TableHead>Ação</TableHead>
                 <TableHead>Horário</TableHead>
                 <TableHead>Validação</TableHead>
-                <TableHead>Foto</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -64,22 +62,11 @@ export function TimeLogsTable({ timeLogs }: TimeLogsTableProps) {
                     <TableCell>
                       <ValidationStatus validation={log.validation} />
                     </TableCell>
-                    <TableCell>
-                      {typeof log.photoUrl === 'string' && log.photoUrl.length > 0 && (
-                        <Image
-                          src={log.photoUrl}
-                          alt={`Foto de ${log.action}`}
-                          width={40}
-                          height={40}
-                          className="rounded-full object-cover"
-                        />
-                      )}
-                    </TableCell>
                   </TableRow>
                 );
               }) : (
                 <TableRow>
-                  <TableCell colSpan={4} className="h-24 text-center text-muted-foreground">
+                  <TableCell colSpan={3} className="h-24 text-center text-muted-foreground">
                     Nenhum registro de ponto hoje.
                   </TableCell>
                 </TableRow>

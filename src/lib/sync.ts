@@ -12,6 +12,7 @@ interface SyncDB extends DBSchema {
   [STORE_NAME]: {
     key: number;
     value: {
+      key?: number; // Chave para o keyPath, opcional pois é auto-gerada
       userId: string;
       action: TimeLogAction;
       capturedImage: string;
@@ -68,6 +69,12 @@ const processSyncQueue = async () => {
 
     for (const item of items) {
       try {
+        // Assegura que a chave existe antes de usar
+        if (item.key === undefined) {
+            console.error('Item in queue without a key:', item);
+            continue; // Pula para o próximo item
+        }
+
         const result = await recordTimeLog(
           item.userId,
           item.action,
@@ -75,6 +82,7 @@ const processSyncQueue = async () => {
           item.location,
           item.timestamp
         );
+
         if (result.success) {
           await db.delete(STORE_NAME, item.key);
           console.log(`Item ${item.key} synced and deleted.`);

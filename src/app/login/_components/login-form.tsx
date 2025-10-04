@@ -86,9 +86,8 @@ export function LoginForm() {
           id="email"
           name="email"
           type="email"
-          placeholder="admin@bit.com"
+          placeholder="Seu e-mail aqui"
           required
-          defaultValue="admin@bit.com"
           disabled={isLoading}
         />
       </div>
@@ -100,8 +99,8 @@ export function LoginForm() {
               name="password" 
               type={showPassword ? 'text' : 'password'} 
               required 
+              placeholder="Sua senha"
               className="pr-10" 
-              defaultValue="adminbit123"
               disabled={isLoading}
             />
             <button

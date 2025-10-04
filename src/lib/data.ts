@@ -1,7 +1,7 @@
 
 
 import { db as clientDb, storage as clientStorage, auth as clientAuth } from './firebase';
-import { 
+import {
     collection, 
     doc, 
     getDoc, 
@@ -15,7 +15,8 @@ import {
     Timestamp,
     DocumentData,
     QueryDocumentSnapshot,
-    setDoc
+    setDoc,
+    limit
 } from 'firebase/firestore';
 import { 
     ref as storageRef, 
@@ -24,7 +25,7 @@ import {
     uploadBytes,
 } from 'firebase/storage';
 import { createUserWithEmailAndPassword } from 'firebase/auth';
-import type { User, TimeLog, Announcement, Payslip, WorkPost, WorkShift, Signature, WorkPostCreationData, WorkPostUpdateData, WorkShiftCreationData, WorkShiftUpdateData, IndividualSchedule, Occurrence } from '@/lib/types';
+import type { User, TimeLog, Announcement, Payslip, WorkPost, WorkShift, Signature, WorkPostCreationData, WorkPostUpdateData, WorkShiftCreationData, WorkShiftUpdateData, IndividualSchedule, Occurrence, DailyBreakSchedule } from '@/lib/types';
 import { auth as adminAuth, db as adminDb, storage as adminStorage } from './firebase-admin';
 import admin from 'firebase-admin';
 
@@ -54,7 +55,7 @@ const fromAdminFirestore = <T extends { id: string }>(snapshot: admin.firestore.
 
 export const findUserByEmail = async (email: string): Promise<User | null> => {
     if (!adminDb) return null;
-    const q = adminDb.collection('users').where('email', '==', email);
+    const q = adminDb.collection('users').where('email', '==', email).limit(1);
     const querySnapshot = await q.get();
     if (querySnapshot.empty) {
         return null;
@@ -77,6 +78,30 @@ export const getUsers = async (): Promise<User[]> => {
     const q = adminDb.collection('users').orderBy('name');
     const querySnapshot = await q.get();
     return querySnapshot.docs.map(doc => fromAdminFirestore<User>(doc));
+};
+
+export const getUsersByWorkPostIds = async (workPostIds: string[]): Promise<User[]> => {
+    if (!adminDb || workPostIds.length === 0) return [];
+    
+    const CHUNK_SIZE = 30;
+    const chunks: string[][] = [];
+    for (let i = 0; i < workPostIds.length; i += CHUNK_SIZE) {
+        chunks.push(workPostIds.slice(i, i + CHUNK_SIZE));
+    }
+
+    const userPromises = chunks.map(chunk => 
+        adminDb.collection('users').where('workPostId', 'in', chunk).orderBy('name').get()
+    );
+
+    const querySnapshots = await Promise.all(userPromises);
+    const users: User[] = [];
+    querySnapshots.forEach(snapshot => {
+        snapshot.docs.forEach(doc => {
+            users.push(fromAdminFirestore<User>(doc));
+        });
+    });
+
+    return users.sort((a, b) => a.name.localeCompare(b.name));
 };
 
 type UserCreationData = Omit<User, 'id' | 'passwordHash'> & {
@@ -154,6 +179,30 @@ export const getTimeLogsForUser = async (userId: string): Promise<TimeLog[]> => 
     return querySnapshot.docs.map(doc => fromAdminFirestore<TimeLog>(doc));
 };
 
+export const getTimeLogsForUsers = async (userIds: string[]): Promise<TimeLog[]> => {
+    if (!adminDb || userIds.length === 0) return [];
+
+    const CHUNK_SIZE = 30;
+    const chunks: string[][] = [];
+    for (let i = 0; i < userIds.length; i += CHUNK_SIZE) {
+        chunks.push(userIds.slice(i, i + CHUNK_SIZE));
+    }
+
+    const logPromises = chunks.map(chunk => 
+        adminDb.collection('timeLogs').where('userId', 'in', chunk).orderBy('timestamp', 'desc').get()
+    );
+
+    const querySnapshots = await Promise.all(logPromises);
+    const timeLogs: TimeLog[] = [];
+    querySnapshots.forEach(snapshot => {
+        snapshot.docs.forEach(doc => {
+            timeLogs.push(fromAdminFirestore<TimeLog>(doc));
+        });
+    });
+
+    return timeLogs.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+};
+
 export const getAllTimeLogs = async (): Promise<TimeLog[]> => {
     if (!adminDb) return [];
     const q = adminDb.collection('timeLogs').orderBy('timestamp', 'desc');
@@ -223,6 +272,13 @@ export const addPayslip = async (payslip: Omit<Payslip, 'id' | 'uploadDate'>) =>
 export const getWorkPosts = async (): Promise<WorkPost[]> => {
     if (!adminDb) return [];
     const q = adminDb.collection('workPosts').orderBy('name');
+    const querySnapshot = await q.get();
+    return querySnapshot.docs.map(doc => fromAdminFirestore<WorkPost>(doc));
+};
+
+export const getWorkPostsBySupervisor = async (supervisorId: string): Promise<WorkPost[]> => {
+    if (!adminDb) return [];
+    const q = adminDb.collection('workPosts').where('supervisorId', '==', supervisorId).orderBy('name');
     const querySnapshot = await q.get();
     return querySnapshot.docs.map(doc => fromAdminFirestore<WorkPost>(doc));
 };
@@ -316,7 +372,7 @@ export async function saveFile(fileOrDataUri: File | string, customPath?: string
 // --- Signature Functions ---
 export const getSignatureForUser = async (userId: string, monthYear: string): Promise<Signature | null> => {
     if (!adminDb) return null;
-    const q = adminDb.collection('signatures').where('userId', '==', userId).where('monthYear', '==', monthYear);
+    const q = adminDb.collection('signatures').where('userId', '==', userId).where('monthYear', '==', monthYear).limit(1);
     const querySnapshot = await q.get();
     if (querySnapshot.empty) {
         return null;
@@ -324,15 +380,47 @@ export const getSignatureForUser = async (userId: string, monthYear: string): Pr
     return fromAdminFirestore<Signature>(querySnapshot.docs[0]);
 };
 
-export const getAllSignatures = async (monthYear: string): Promise<Record<string, Signature | null>> => {
-    const allUsers = await getUsers();
-    const status: Record<string, Signature | null> = {};
-    const collaborators = allUsers.filter(u => u.role === 'collaborator' || u.role === 'supervisor');
-    
-    for(const user of collaborators) {
-        status[user.id] = await getSignatureForUser(user.id, monthYear);
+export const getSignaturesForUsers = async (userIds: string[], monthYear: string): Promise<Record<string, Signature | null>> => {
+    if (!adminDb || userIds.length === 0) return {};
+
+    const CHUNK_SIZE = 30; // Firestore 'in' query limit
+    const chunks: string[][] = [];
+    for (let i = 0; i < userIds.length; i += CHUNK_SIZE) {
+        chunks.push(userIds.slice(i, i + CHUNK_SIZE));
     }
+
+    const signaturePromises = chunks.map(chunk => {
+        const q = adminDb.collection('signatures').where('monthYear', '==', monthYear).where('userId', 'in', chunk);
+        return q.get();
+    });
+
+    const querySnapshots = await Promise.all(signaturePromises);
+    
+    const allSignatures: Signature[] = [];
+    querySnapshots.forEach(snapshot => {
+        snapshot.docs.forEach(doc => {
+            allSignatures.push(fromAdminFirestore<Signature>(doc));
+        });
+    });
+
+    const status: Record<string, Signature | null> = {};
+    userIds.forEach(id => {
+        const found = allSignatures.find(s => s.userId === id);
+        status[id] = found || null;
+    });
+
     return status;
+};
+
+export const getAllSignatures = async (monthYear: string, users?: User[]): Promise<Record<string, Signature | null>> => {
+    let allUsers = users;
+    if (!allUsers) {
+        allUsers = await getUsers();
+    }
+    const collaborators = allUsers.filter(u => u.role === 'collaborator' || u.role === 'supervisor');
+    const collaboratorIds = collaborators.map(u => u.id);
+    
+    return await getSignaturesForUsers(collaboratorIds, monthYear);
 };
 
 export const addSignature = async (userId: string, monthYear: string): Promise<Signature> => {
@@ -377,6 +465,17 @@ export const addOccurrence = async (occurrence: Omit<Occurrence, 'id' | 'created
     return { id: docRef.id, ...newOccurrence };
 };
 
+// --- Daily Break Schedule Functions ---
+export const getCollaboratorBreakSchedule = async (userId: string): Promise<DailyBreakSchedule | null> => {
+    if (!adminDb) return null;
+    const today = new Date().toISOString().slice(0, 10); // YYYY-MM-DD
+    const scheduleId = `${userId}_${today}`;
 
+    const docRef = adminDb.collection('dailySchedules').doc(scheduleId);
+    const docSnap = await docRef.get();
 
-    
+    if (docSnap.exists) {
+        return fromAdminFirestore<DailyBreakSchedule>(docSnap);
+    }
+    return null;
+};

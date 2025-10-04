@@ -124,3 +124,16 @@ export type BreakTime = {
   endTime: string;
   workPostId: string;
 };
+
+/**
+ * Representa o horário de intervalo dinâmico para um colaborador em um dia específico.
+ */
+export type DailyBreakSchedule = {
+  id: string; // Opcional, pode ser o próprio userId para simplificar
+  userId: string;
+  date: string; // Formato YYYY-MM-DD
+  startTime: string; // Formato HH:mm
+  endTime: string; // Formato HH:mm
+  setBy: string; // ID do supervisor que definiu o horário
+  createdAt: string; // ISO 8601 timestamp
+};

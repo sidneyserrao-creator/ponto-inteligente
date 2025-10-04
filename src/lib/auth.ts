@@ -26,14 +26,14 @@ export async function createSession(idToken: string): Promise<string> {
 export async function getSession(): Promise<{ uid: string } | null> {
     if (!adminAuth) return null;
 
-    const sessionCookie = cookies().get(SESSION_COOKIE_NAME);
+    const sessionCookie = (cookies() as any).get(SESSION_COOKIE_NAME);
     if (sessionCookie) {
         try {
             const decodedClaims = await adminAuth.verifySessionCookie(sessionCookie.value, true);
             return { uid: decodedClaims.uid };
         } catch (error) {
             console.warn('Invalid session cookie:', error);
-            cookies().delete(SESSION_COOKIE_NAME);
+            (cookies() as any).delete(SESSION_COOKIE_NAME);
             return null;
         }
     }
@@ -41,7 +41,7 @@ export async function getSession(): Promise<{ uid: string } | null> {
 }
 
 export async function deleteSession() {
-  cookies().delete(SESSION_COOKIE_NAME);
+  (cookies() as any).delete(SESSION_COOKIE_NAME);
 }
 
 export async function getCurrentUser(): Promise<User | null> {
