@@ -10,16 +10,7 @@ import { FileSignature, Download, Check, Hourglass, Loader2 } from 'lucide-react
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import dynamic from 'next/dynamic';
-
-const ClientPDF = dynamic(() => import('../pdf/client-pdf').then(mod => mod.ClientPDF), {
-  ssr: false,
-  loading: () => (
-      <Button variant="outline" size="sm" disabled>
-          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-          Carregando...
-      </Button>
-  ),
-});
+import { ClientPDF } from '../pdf/client-pdf';
 
 
 interface SignedTimeSheetsProps {

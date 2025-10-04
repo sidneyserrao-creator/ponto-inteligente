@@ -5,14 +5,12 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Clock } from 'lucide-react';
 import { useState, useEffect } from 'react';
 
-// --- CORREÇÃO FINAL E DEFINITIVA DE TODAS AS IMPORTAÇÕES ---
 import { Announcements } from './announcements'; 
 import { ClockWidget } from './collaborator/clock-widget';
 import { MyPayslips } from './collaborator/my-payslips';
-import MonthlySignature from './collaborator/sign-sheet-widget'; // Este é o único com exportação default
+import MonthlySignature from './collaborator/sign-sheet-widget';
 import { TimeLogsTable } from './collaborator/time-logs-table';
 
-// --- Componente do Card de Intervalo (sem alterações) ---
 function BreakScheduleCard({ schedule }: { schedule: DailyBreakSchedule }) {
   const [isVisible, setIsVisible] = useState(true);
 
@@ -52,7 +50,6 @@ function BreakScheduleCard({ schedule }: { schedule: DailyBreakSchedule }) {
   );
 }
 
-// --- Componente Principal do Dashboard do Colaborador (FINALMENTE CORRETO) ---
 export default function CollaboratorDashboardClient({
   user,
   announcements,
@@ -77,7 +74,7 @@ export default function CollaboratorDashboardClient({
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="space-y-6">
           <ClockWidget user={user} timeLogs={currentLogs} />
-          <MonthlySignature userId={user.id} initialSignature={signature} />
+          <MonthlySignature user={user} logs={currentLogs} initialSignature={signature} />
         </div>
 
         <div className="lg:col-span-2 space-y-6">

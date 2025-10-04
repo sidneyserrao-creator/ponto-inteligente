@@ -1,7 +1,7 @@
 import { getAnnouncements, getTimeLogsForUser, getPayslipsForUser, getSignatureForUser } from '@/lib/data';
 import { format } from 'date-fns';
 import CollaboratorDashboardClient from './collaborator-dashboard-client';
-import type { User, DailyBreakSchedule } from '@/lib/types';
+import type { User, DailyBreakSchedule, Signature } from '@/lib/types';
 
 // Aceita a nova prop breakSchedule
 export default async function CollaboratorDashboard({ user, breakSchedule }: { user: User; breakSchedule: DailyBreakSchedule | null }) {

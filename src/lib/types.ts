@@ -1,3 +1,4 @@
+'use client';
 export type Role = 'collaborator' | 'supervisor' | 'admin';
 
 export type DaySchedule = {
