@@ -278,9 +278,11 @@ export const getWorkPosts = async (): Promise<WorkPost[]> => {
 
 export const getWorkPostsBySupervisor = async (supervisorId: string): Promise<WorkPost[]> => {
     if (!adminDb) return [];
-    const q = adminDb.collection('workPosts').where('supervisorId', '==', supervisorId).orderBy('name');
+    const q = adminDb.collection('workPosts').where('supervisorId', '==', supervisorId);
     const querySnapshot = await q.get();
-    return querySnapshot.docs.map(doc => fromAdminFirestore<WorkPost>(doc));
+    const workPosts = querySnapshot.docs.map(doc => fromAdminFirestore<WorkPost>(doc));
+    // Sort in application code instead of in the query
+    return workPosts.sort((a, b) => a.name.localeCompare(b.name));
 };
 
 export const addWorkPost = async (post: WorkPostCreationData) => {
