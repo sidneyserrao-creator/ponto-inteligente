@@ -64,7 +64,7 @@ export default function AdminDashboardClient(props: {
         {activeTab === 'documentos' && <DocumentManager collaborators={props.allUsers} />}
         {activeTab === 'escalas' && <IndividualScheduleManager allUsers={props.allUsers} workShifts={props.workShifts} workPosts={props.workPosts} />}
         {activeTab === 'ocorrencias' && <OccurrenceManager allUsers={props.allUsers} initialOccurrences={props.occurrences} />}
-        {activeTab === 'postos' && <WorkPostManager initialWorkPosts={props.workPosts} supervisors={props.allUsers.filter(u => u.role === 'supervisor')} />}
+        {activeTab === 'postos' && <WorkPostManager initialWorkPosts={props.workPosts} supervisors={props.allUsers.filter(u => u.role === 'supervisor')} allUsers={props.allUsers} />}
       </main>
     </div>
   );
