@@ -67,6 +67,10 @@ export default function CollaboratorDashboardClient({
 }) {
   const [currentLogs, setCurrentLogs] = useState(timeLogs);
 
+  useEffect(() => {
+    setCurrentLogs(timeLogs);
+  }, [timeLogs]);
+
   return (
     <div className="space-y-6">
       {breakSchedule && <BreakScheduleCard schedule={breakSchedule} />}
