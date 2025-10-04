@@ -16,6 +16,10 @@ import {
   updateWorkPost,
   updateWorkShift,
   addOccurrence,
+  addPayslip,
+  addTimeLog,
+  findUserById,
+  getTimeLogsForUser,
 } from './data';
 import { storage } from './firebase-admin';
 import type {
@@ -23,14 +27,21 @@ import type {
   WorkPostCreationData,
   WorkShiftCreationData,
   OccurrenceType,
+  TimeLogAction,
+  TimeLog,
+  Signature,
 } from './types';
 import { cookies } from 'next/headers';
-import { SESSION_COOKIE_NAME, createSession, deleteSession } from './auth';
+import { SESSION_COOKIE_NAME, createSession, deleteSession, getCurrentUser } from './auth';
 import { redirect } from 'next/navigation';
 import {
   validateTimeLogsWithFacialRecognition,
   type ValidateTimeLogsWithFacialRecognitionOutput,
 } from '@/ai/flows/validate-time-logs-with-facial-recognition';
+import { createElement } from 'react';
+import { renderToBuffer } from '@react-pdf/renderer';
+import { TimeSheetDocument } from '@/app/dashboard/_components/pdf/time-sheet-document';
+
 
 // --- Auth Actions ---
 export async function login(idToken: string) {
@@ -59,6 +70,23 @@ export async function logout() {
 }
 
 // --- User (Collaborator) Actions ---
+const uploadFile = async (
+  fileContent: Buffer,
+  filePath: string,
+  contentType: string
+) => {
+  const bucket = storage.bucket();
+  const file = bucket.file(filePath);
+
+  await file.save(fileContent, {
+    metadata: { contentType },
+  });
+
+  await file.makePublic();
+  return file.publicUrl();
+};
+
+
 const uploadPhoto = async (
   photo: File | string | null,
   userId?: string
@@ -169,7 +197,7 @@ export async function removeCollaborator(userId: string) {
 // --- TimeLog Actions ---
 export async function recordTimeLog(
   userId: string,
-  action: User['role'],
+  action: TimeLogAction,
   capturedImage: string,
   location: { latitude: number; longitude: number } | null,
   timestamp?: string
@@ -183,15 +211,19 @@ export async function recordTimeLog(
   }
 
   try {
-    const user = await new Promise<User | null>(res =>
-      setTimeout(() => res({ id: '1', name: 'Test User', email: 'a@a.com', role: 'collaborator', profilePhotoUrl: 'https://picsum.photos/200' }), 1000)
-    );
+    const user = await findUserById(userId);
     if (!user || !user.profilePhotoUrl) {
       return { success: false, message: 'Usuário ou foto de perfil não encontrados.' };
     }
 
+    // Assume-se que a foto de perfil já é um data URI ou uma URL pública acessível.
+    // Se for URL, precisa ser convertida para data URI antes de passar para a IA.
+    // Esta parte pode precisar de ajuste dependendo do que está armazenado.
+    const profilePhotoForValidation = user.profilePhotoUrl;
+
+
     const validationResult = await validateTimeLogsWithFacialRecognition({
-      profilePhotoDataUri: user.profilePhotoUrl, // Idealmente, seria um data URI ou URL pública acessível
+      profilePhotoDataUri: profilePhotoForValidation,
       submittedPhotoDataUri: capturedImage,
     });
 
@@ -200,12 +232,12 @@ export async function recordTimeLog(
       `${userId}-${Date.now()}`
     );
 
-    const logEntry = {
+    const logEntry: Omit<TimeLog, 'id'> = {
       userId,
       action,
       timestamp: timestamp || new Date().toISOString(),
       photoUrl,
-      location,
+      location: location || undefined,
       validation: {
         isValidated: validationResult.isValidated,
         confidence: validationResult.confidence,
@@ -213,7 +245,7 @@ export async function recordTimeLog(
       },
     };
 
-    // await addTimeLog(logEntry); // Salva no banco de dados
+    await addTimeLog(logEntry);
 
     revalidatePath('/dashboard');
 
@@ -291,9 +323,15 @@ export async function uploadPayslip(formData: FormData) {
 
   try {
     const filePath = `payslips/${userId}/${file.name}`;
-    const fileUrl = await uploadPhoto(file, filePath);
+    const fileContent = Buffer.from(await file.arrayBuffer());
+    
+    const fileUrl = await uploadFile(fileContent, filePath, 'application/pdf');
 
-    // await addPayslip({ userId, fileName: file.name, fileUrl });
+    if (!fileUrl) {
+        throw new Error('Falha ao obter a URL do arquivo.');
+    }
+
+    await addPayslip({ userId, fileName: file.name, fileUrl: filePath });
 
     revalidatePath('/dashboard');
     return { success: true, message: 'Contracheque enviado com sucesso!' };
@@ -301,6 +339,7 @@ export async function uploadPayslip(formData: FormData) {
     return { success: false, error: error.message };
   }
 }
+
 
 // --- WorkPost Actions ---
 export async function saveWorkPost(formData: FormData) {
@@ -401,18 +440,47 @@ export async function removeWorkShift(shiftId: string) {
 }
 
 // --- Time Sheet Signature Action ---
-export async function signTimeSheet(userId: string, monthYear: string) {
+export async function signTimeSheet(userId: string, monthYear: string): Promise<{ success: boolean; signature?: Signature; error?: string; }> {
   if (!userId || !monthYear) {
     return { success: false, error: 'Faltam informações para assinar.' };
   }
+  
+  const user = await findUserById(userId);
+  if (!user) {
+    return { success: false, error: 'Usuário não encontrado.' };
+  }
+
+  const logs = await getTimeLogsForUser(userId); 
+  const signedAt = new Date().toISOString();
+
+  const tempSignature: Signature = {
+    id: '', 
+    userId,
+    monthYear,
+    signedAt,
+  };
+
   try {
-    const signature = await addSignature(userId, monthYear);
+    // 1. Gerar o PDF em memória
+    const pdfBuffer = await renderToBuffer(
+      createElement(TimeSheetDocument, { user, logs, signature: tempSignature })
+    );
+  
+    // 2. Fazer o upload para o Storage
+    const filePath = `signed_sheets/${userId}/${monthYear}.pdf`;
+    const pdfUrl = await uploadFile(pdfBuffer, filePath, 'application/pdf');
+
+    // 3. Salvar os metadados da assinatura no Firestore
+    const signature = await addSignature(userId, monthYear, pdfUrl, signedAt);
+
     revalidatePath('/dashboard');
     return { success: true, signature };
   } catch (error: any) {
+    console.error("Error signing timesheet:", error);
     return { success: false, error: error.message };
   }
 }
+
 
 // --- Individual Schedule Action ---
 export async function saveIndividualSchedule(formData: FormData) {
@@ -424,17 +492,20 @@ export async function saveIndividualSchedule(formData: FormData) {
   const schedule: any = {};
   for (const [key, value] of formData.entries()) {
     if (key.includes('-start') || key.includes('-end')) {
-      const [date, type] = key.split('-');
-      if (!schedule[date]) {
-        schedule[date] = {};
+      const dateKey = key.substring(0, 10); // Extrai YYYY-MM-DD
+      const type = key.substring(11); // Extrai 'start' ou 'end'
+      
+      if (!schedule[dateKey]) {
+        schedule[dateKey] = {};
       }
-      schedule[date][type] = value;
+      schedule[dateKey][type] = value;
     }
   }
-
+  
   // Remove dias onde ambos start e end estão vazios (Folga)
   for (const date in schedule) {
     if (!schedule[date].start && !schedule[date].end) {
+      // Define como null para remover o campo do documento do usuário
       schedule[date] = null;
     } else if (!schedule[date].start || !schedule[date].end) {
       // Se apenas um estiver preenchido, retorna erro

@@ -1,3 +1,4 @@
+'use server';
 
 
 import { db as clientDb, storage as clientStorage, auth as clientAuth } from './firebase';
