@@ -222,7 +222,6 @@ export const updateTimeLog = async (logId: string, newTimestamp: string) => {
     await logDocRef.update({
         timestamp: newTimestamp,
         'validation.reason': 'Registro ajustado manualmente pelo supervisor.',
-        'validation.confidence': 1.0,
         'validation.isValidated': true,
     });
     return true;
@@ -237,12 +236,9 @@ export const getAnnouncements = async (): Promise<Announcement[]> => {
     return querySnapshot.docs.map(doc => fromAdminFirestore<Announcement>(doc));
 };
 
-export const addAnnouncement = async (announcement: Omit<Announcement, 'id' | 'createdAt'>) => {
+export const addAnnouncement = async (announcement: Omit<Announcement, 'id'>) => {
     if (!adminDb) throw new Error('Firestore not initialized');
-    await adminDb.collection('announcements').add({
-        ...announcement,
-        createdAt: new Date().toISOString()
-    });
+    await adminDb.collection('announcements').add(announcement);
 };
 
 export const deleteAnnouncement = async (id: string) => {
@@ -458,14 +454,13 @@ export const getOccurrences = async (): Promise<Occurrence[]> => {
     return querySnapshot.docs.map(doc => fromAdminFirestore<Occurrence>(doc));
 };
 
-export const addOccurrence = async (occurrence: Omit<Occurrence, 'id' | 'createdAt'>): Promise<Occurrence> => {
+export const addOccurrence = async (occurrence: Omit<Occurrence, 'id'>): Promise<Occurrence> => {
     if (!adminDb) throw new Error('Firestore not initialized');
     const newOccurrence = {
-        ...occurrence,
-        createdAt: new Date().toISOString(),
+        ...occurrence
     };
     const docRef = await adminDb.collection('occurrences').add(newOccurrence);
-    return { id: docRef.id, ...newOccurrence };
+    return { id: docRef.id, ...newOccurrence, createdAt: new Date().toISOString() };
 };
 
 // --- Daily Break Schedule Functions ---
@@ -482,3 +477,5 @@ export const getCollaboratorBreakSchedule = async (userId: string): Promise<Dail
     }
     return null;
 };
+
+    

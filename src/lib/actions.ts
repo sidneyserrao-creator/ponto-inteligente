@@ -6,12 +6,19 @@ import { getAuth } from 'firebase-admin/auth';
 import { getStorage } from 'firebase-admin/storage';
 import { sendNotification } from '@/lib/fcm';
 import type { DailyBreakSchedule, Occurrence, Role, User, IndividualSchedule, TimeLog, TimeLogAction } from '@/lib/types';
-import { deleteSession, createSession } from "@/lib/auth"; // SESSION_COOKIE_NAME removido para evitar duplicidade
+import { createSession, deleteSession } from "@/lib/auth";
 import { cookies } from "next/headers";
 import { redirect } from 'next/navigation';
 import { FieldValue } from 'firebase-admin/firestore';
+import { addSignature, updateTimeLog as dbUpdateTimeLog, updateUserSchedule as dbUpdateUserSchedule, addOccurrence as dbAddOccurrence, addPayslip as dbAddPayslip, deleteAnnouncement as dbDeleteAnnouncement, addAnnouncement as dbAddAnnouncement, addWorkPost, updateWorkPost, deleteWorkPost, addWorkShift, updateWorkShift, removeWorkShift as dbRemoveWorkShift, updateUser, addUser } from './data';
+import { renderToBuffer } from '@react-pdf/renderer';
+import { TimeSheetDocument } from '@/app/dashboard/_components/pdf/time-sheet-document';
+import { createElement } from 'react';
 
-// --- Auth Actions (CORRIGIDO) ---
+const SESSION_COOKIE_NAME = 'bit_seguranca_session';
+const expiresIn = 60 * 60 * 24 * 5 * 1000; // 5 dias
+
+// --- Auth Actions ---
 
 export async function login(idToken: string) {
     'use server';
@@ -20,14 +27,11 @@ export async function login(idToken: string) {
     }
     try {
         const sessionCookie = await createSession(idToken);
-        // O `createSession` já lida com o cookie, mas se precisarmos setar manualmente:
-        (await
-        // O `createSession` já lida com o cookie, mas se precisarmos setar manualmente:
-        cookies()).set('session', sessionCookie, {
+        cookies().set(SESSION_COOKIE_NAME, sessionCookie, {
             httpOnly: true,
             secure: process.env.NODE_ENV === 'production',
             path: '/',
-            maxAge: 60 * 60 * 24 * 5 // 5 dias
+            maxAge: expiresIn / 1000
         });
         redirect('/dashboard');
     } catch (e: any) {
@@ -47,12 +51,12 @@ export async function logout() {
 
 // --- Time Log Actions ---
 
-// Esta função já existia, mas o erro do compilador indicava que não. Isso pode ser um problema de cache.
 export async function recordTimeLog(
   userId: string, 
   action: TimeLogAction, 
   photoDataUrl: string, 
-  location: { latitude: number; longitude: number } | null
+  location: { latitude: number; longitude: number } | null,
+  timestampOverride?: string
 ) {
     'use server';
     if (!userId || !action || !photoDataUrl) {
@@ -60,24 +64,20 @@ export async function recordTimeLog(
     }
 
     try {
-        // Upload da foto para o Storage
         const bucket = getStorage().bucket();
         const fileName = `time_logs/${userId}/${Date.now()}.jpg`;
         const imageBuffer = Buffer.from(photoDataUrl.replace(/^data:image\/jpeg;base64,/, ''), 'base64');
         
         const file = bucket.file(fileName);
         await file.save(imageBuffer, { metadata: { contentType: 'image/jpeg' } });
-        await file.makePublic();
         const photoUrl = file.publicUrl();
 
-        // Criação do registro no Firestore
         const newLog: Omit<TimeLog, 'id'> = {
             userId,
             action,
-            timestamp: new Date().toISOString(),
+            timestamp: timestampOverride || new Date().toISOString(),
             photoUrl,
             location,
-            validated: false, // Ponto inicia como não validado
         };
 
         const docRef = await db.collection('timeLogs').add(newLog);
@@ -91,121 +91,139 @@ export async function recordTimeLog(
     }
 }
 
-// --- Occurrence Actions (CORRIGIDO) ---
-export async function saveOccurrence(formData: FormData) {
-    const id = formData.get('id') as string | null;
-    
-    // CORREÇÃO: A propriedade se chama 'description', e não 'reason'
-    const description = formData.get('description') as string;
 
-    if (!description) {
-        return { success: false, error: 'A descrição da ocorrência é obrigatória.' };
+export async function editTimeLog(logId: string, newTimestamp: string) {
+    'use server';
+    try {
+        await dbUpdateTimeLog(logId, newTimestamp);
+        revalidatePath('/dashboard');
+        return { success: true, message: 'Registro de ponto atualizado com sucesso!' };
+    } catch (error) {
+        console.error('Erro ao editar registro de ponto:', error);
+        return { success: false, error: 'Falha ao atualizar o registro.' };
     }
+}
 
-    const occurrenceData: Partial<Occurrence> = {
+
+// --- Occurrence Actions ---
+export async function logOccurrence(previousState: any, formData: FormData) {
+    'use server';
+    const rawData = {
         userId: formData.get('userId') as string,
         date: formData.get('date') as string,
-        description: description,
-        status: 'pending',
+        type: formData.get('type') as Occurrence['type'],
+        description: formData.get('description') as string,
     };
 
+    if (!rawData.userId || !rawData.date || !rawData.type || !rawData.description) {
+        return { success: false, error: 'Todos os campos são obrigatórios.' };
+    }
+
     try {
-        if (id) {
-            await db.collection('occurrences').doc(id).update(occurrenceData);
-        } else {
-            occurrenceData.createdAt = new Date().toISOString();
-            await db.collection('occurrences').add(occurrenceData);
-        }
+        await dbAddOccurrence({ ...rawData, createdAt: new Date().toISOString() });
         revalidatePath('/dashboard');
-        return { success: true, message: `Ocorrência ${id ? 'atualizada' : 'criada'} com sucesso!` };
+        return { success: true, message: 'Ocorrência registrada com sucesso!' };
     } catch (error) {
-        console.error('Erro ao salvar ocorrência:', error);
+        console.error('Erro ao registrar ocorrência:', error);
         return { success: false, error: 'Ocorreu um erro no servidor.' };
     }
 }
 
-// --- Outras funções permanecem inalteradas, mas listadas para completude ---
+
+// --- Announcement Actions ---
 
 export async function createAnnouncement(formData: FormData) {
-  const title = formData.get('title') as string;
-  const content = formData.get('content') as string;
-  const recipientIds = formData.getAll('recipientIds') as string[];
+    'use server';
+    const rawData = {
+      title: formData.get('title') as string,
+      content: formData.get('content') as string,
+      target: formData.get('target') as 'all' | 'individual',
+      userId: formData.get('userId') as string | undefined,
+    };
 
-  if (!title || !content) {
-    return { success: false, message: 'Título e conteúdo são obrigatórios.' };
+  if (!rawData.title || !rawData.content) {
+    return { error: 'Título e conteúdo são obrigatórios.' };
   }
 
   try {
-    const docRef = await db.collection('announcements').add({
-      title,
-      content,
-      recipientIds,
-      createdAt: new Date().toISOString(),
+    await dbAddAnnouncement({
+        ...rawData,
+        createdAt: new Date().toISOString(),
     });
+    
     revalidatePath('/dashboard');
 
-    if (recipientIds && recipientIds.length > 0) {
+    if (rawData.target === 'individual' && rawData.userId) {
       const notification = {
-        title: `Novo Comunicado: ${title}`,
-        body: content.substring(0, 100),
+        title: `Novo Comunicado: ${rawData.title}`,
+        body: rawData.content.substring(0, 100),
       };
-      await Promise.all(recipientIds.map(userId => sendNotification(userId, notification)));
+      await sendNotification(rawData.userId, notification);
     }
 
-    return { success: true, message: 'Anúncio criado com sucesso!', id: docRef.id };
+    return { success: true };
   } catch (error) {
     console.error('Erro ao criar anúncio:', error);
-    return { success: false, message: 'Ocorreu um erro no servidor.' };
+    return { error: 'Ocorreu um erro no servidor.' };
   }
 }
 
 export async function removeAnnouncement(id: string) {
+    'use server';
   if (!id) {
-    return { success: false, message: 'ID do anúncio é obrigatório.' };
+    return { error: 'ID do anúncio é obrigatório.' };
   }
   try {
-    await db.collection('announcements').doc(id).delete();
+    await dbDeleteAnnouncement(id);
     revalidatePath('/dashboard');
-    return { success: true, message: 'Anúncio removido com sucesso!' };
+    return { success: true };
   } catch (error) {
     console.error('Erro ao remover anúncio:', error);
-    return { success: false, message: 'Ocorreu um erro no servidor.' };
+    return { error: 'Ocorreu um erro no servidor.' };
   }
 }
 
-export async function setBreakTime(supervisorId: string, collaboratorId: string, startTime: string, endTime: string) {
-  if (!supervisorId || !collaboratorId || !startTime || !endTime) {
-    return { success: false, message: 'Dados inválidos.' };
-  }
-  try {
-    const today = new Date().toISOString().slice(0, 10);
-    const scheduleId = `${collaboratorId}_${today}`;
+// --- Break Time Actions ---
 
-    const newSchedule: Omit<DailyBreakSchedule, 'id'> = {
-      userId: collaboratorId,
-      date: today,
-      startTime,
-      endTime,
-      setBy: supervisorId,
-      createdAt: new Date().toISOString(),
-    };
+export async function saveBreakTime(formData: FormData) {
+    'use server';
+    const userId = formData.get('userId') as string;
+    const breakStartTime = formData.get('breakStartTime') as string;
+    const breakEndTime = formData.get('breakEndTime') as string;
 
-    await db.collection('dailySchedules').doc(scheduleId).set(newSchedule);
-    revalidatePath('/dashboard');
+    if (!userId || !breakStartTime || !breakEndTime) {
+        return { success: false, error: 'Dados inválidos.' };
+    }
+    try {
+        const schedule: DailyBreakSchedule = {
+            id: `${userId}_${new Date().toISOString().slice(0, 10)}`,
+            userId,
+            date: new Date().toISOString().slice(0, 10),
+            startTime: breakStartTime,
+            endTime: breakEndTime,
+            setBy: 'supervisor_id_placeholder', // You should get the current supervisor's ID here
+            createdAt: new Date().toISOString(),
+        };
 
-    await sendNotification(collaboratorId, {
-      title: 'Horário de Intervalo Definido',
-      body: `Seu intervalo hoje será das ${startTime} às ${endTime}.`,
-    });
+        await db.collection('dailySchedules').doc(schedule.id).set(schedule);
+        revalidatePath('/dashboard');
 
-    return { success: true, message: 'Horário de intervalo definido com sucesso!' };
-  } catch (error) {
-    console.error('Erro ao definir o horário de intervalo:', error);
-    return { success: false, message: 'Ocorreu um erro no servidor.' };
-  }
+        await sendNotification(userId, {
+            title: 'Horário de Intervalo Definido',
+            body: `Seu intervalo hoje será das ${breakStartTime} às ${breakEndTime}.`,
+        });
+
+        return { success: true, message: 'Horário de intervalo definido com sucesso!' };
+    } catch (error) {
+        console.error('Erro ao definir o horário de intervalo:', error);
+        return { error: 'Ocorreu um erro no servidor.' };
+    }
 }
+
+// --- Payslip Actions ---
 
 export async function uploadPayslip(formData: FormData) {
+    'use server';
   const userId = formData.get('userId') as string;
   const file = formData.get('file') as File;
 
@@ -215,24 +233,18 @@ export async function uploadPayslip(formData: FormData) {
   try {
     const bucket = getStorage().bucket();
     const filePath = `payslips/${userId}/${new Date().getFullYear()}/${file.name}`;
-    const blob = bucket.file(filePath);
-    const blobStream = blob.createWriteStream({ metadata: { contentType: file.type } });
+    
+    const fileBuffer = Buffer.from(await file.arrayBuffer());
 
-    const streamFinished = new Promise((resolve, reject) => {
-      blobStream.on('finish', resolve);
-      blobStream.on('error', reject);
+    await bucket.file(filePath).save(fileBuffer, {
+        metadata: { contentType: file.type }
     });
 
-    const fileBuffer = await file.arrayBuffer();
-    blobStream.end(Buffer.from(fileBuffer));
-
-    await streamFinished;
-
-    await db.collection('payslipUploads').add({
+    await dbAddPayslip({
       userId,
       fileName: file.name,
-      filePath: filePath,
-      uploadedAt: new Date().toISOString(),
+      fileUrl: filePath, // Storing path instead of full URL for security
+      uploadDate: new Date().toISOString(),
     });
 
     revalidatePath('/dashboard');
@@ -244,18 +256,10 @@ export async function uploadPayslip(formData: FormData) {
   }
 }
 
-export async function removeOccurrence(id: string) {
-    try {
-        await db.collection('occurrences').doc(id).delete();
-        revalidatePath('/dashboard');
-        return { success: true, message: 'Ocorrência removida com sucesso!' };
-    } catch (error) {
-        console.error('Erro ao remover ocorrência:', error);
-        return { success: false, error: 'Ocorreu um erro no servidor.' };
-    }
-}
+// --- WorkPost Actions ---
 
 export async function saveWorkPost(formData: FormData) {
+    'use server';
     const id = formData.get('id') as string | null;
 
     const workPostData = {
@@ -266,12 +270,15 @@ export async function saveWorkPost(formData: FormData) {
         radius: parseInt(formData.get('radius') as string, 10),
         supervisorId: formData.get('supervisorId') as string,
     };
+     if (!workPostData.name || !workPostData.address || isNaN(workPostData.latitude)) {
+        return { success: false, error: 'Dados do posto de trabalho inválidos.' };
+    }
 
     try {
         if (id) {
-            await db.collection('workposts').doc(id).update(workPostData);
+            await updateWorkPost(id, workPostData);
         } else {
-            await db.collection('workposts').add(workPostData);
+            await addWorkPost(workPostData);
         }
         revalidatePath('/dashboard');
         return { success: true, message: `Posto de trabalho ${id ? 'atualizado' : 'criado'} com sucesso!` };
@@ -282,8 +289,9 @@ export async function saveWorkPost(formData: FormData) {
 }
 
 export async function removeWorkPost(id: string) {
+    'use server';
     try {
-        await db.collection('workposts').doc(id).delete();
+        await deleteWorkPost(id);
         revalidatePath('/dashboard');
         return { success: true, message: 'Posto de trabalho removido com sucesso!' };
     } catch (error) {
@@ -291,3 +299,186 @@ export async function removeWorkPost(id: string) {
         return { success: false, error: 'Ocorreu um erro no servidor.' };
     }
 }
+
+
+// --- WorkShift Actions ---
+
+export async function saveWorkShift(formData: FormData) {
+    'use server';
+    const id = formData.get('id') as string | null;
+    
+    const workShiftData = {
+        name: formData.get('name') as string,
+        startTime: formData.get('startTime') as string,
+        endTime: formData.get('endTime') as string,
+        days: formData.getAll('days') as string[],
+    };
+
+    if (!workShiftData.name || !workShiftData.startTime || !workShiftData.endTime || workShiftData.days.length === 0) {
+        return { success: false, error: 'Todos os campos são obrigatórios.' };
+    }
+
+    try {
+        if (id) {
+            await updateWorkShift(id, workShiftData);
+        } else {
+            await addWorkShift(workShiftData);
+        }
+        revalidatePath('/dashboard');
+        return { success: true, message: `Escala ${id ? 'atualizada' : 'criada'} com sucesso!` };
+    } catch (error) {
+        console.error('Erro ao salvar escala:', error);
+        return { success: false, error: 'Ocorreu um erro no servidor.' };
+    }
+}
+
+export async function removeWorkShift(id: string) {
+    'use server';
+    try {
+        await dbRemoveWorkShift(id);
+        revalidatePath('/dashboard');
+        return { success: true, message: 'Escala de trabalho removida com sucesso!' };
+    } catch (error) {
+        console.error('Erro ao remover escala de trabalho:', error);
+        return { success: false, error: 'Ocorreu um erro no servidor.' };
+    }
+}
+
+// --- Collaborator (User) Actions ---
+export async function saveCollaborator(formData: FormData) {
+    'use server';
+    const id = formData.get('id') as string | undefined;
+    const capturedPhoto = formData.get('capturedPhoto') as string | null;
+    const profilePhotoFile = formData.get('profilePhoto') as File | null;
+
+    const userData = {
+        name: formData.get('name') as string,
+        email: formData.get('email') as string,
+        password: formData.get('password') as string,
+        role: formData.get('role') as Role,
+        workPostId: formData.get('workPostId') as string,
+    };
+    
+    if (userData.workPostId === 'none') {
+        delete (userData as any).workPostId;
+    }
+
+    try {
+        let photoUrl: string | undefined = undefined;
+
+        if (capturedPhoto) {
+             const bucket = getStorage().bucket();
+            const fileName = `profile_photos/${id || Date.now()}.jpg`;
+            const imageBuffer = Buffer.from(capturedPhoto.replace(/^data:image\/jpeg;base64,/, ''), 'base64');
+            const file = bucket.file(fileName);
+            await file.save(imageBuffer, { metadata: { contentType: 'image/jpeg' } });
+            photoUrl = file.publicUrl();
+        } else if (profilePhotoFile && profilePhotoFile.size > 0) {
+            const bucket = getStorage().bucket();
+            const fileName = `profile_photos/${id || Date.now()}_${profilePhotoFile.name}`;
+            const fileBuffer = Buffer.from(await profilePhotoFile.arrayBuffer());
+            const file = bucket.file(fileName);
+            await file.save(fileBuffer, { metadata: { contentType: profilePhotoFile.type } });
+            photoUrl = file.publicUrl();
+        }
+        
+        const dataToSave: any = { ...userData };
+        if (photoUrl) {
+            dataToSave.profilePhotoUrl = photoUrl;
+        }
+        
+        if (id) {
+            delete dataToSave.password; // Don't include password if not changing
+             if (userData.password) {
+                 await getAuth().updateUser(id, { password: userData.password });
+             }
+            await updateUser(id, dataToSave);
+        } else {
+            if (!userData.password) return { success: false, error: 'Senha é obrigatória para novos colaboradores.' };
+            const newUser = await getAuth().createUser({
+                email: userData.email,
+                password: userData.password,
+                displayName: userData.name,
+                photoURL: photoUrl,
+            });
+            delete dataToSave.password;
+            await db.collection('users').doc(newUser.uid).set(dataToSave);
+        }
+        
+        revalidatePath('/dashboard');
+        return { success: true, message: `Colaborador ${id ? 'atualizado' : 'criado'} com sucesso!` };
+    } catch (error: any) {
+        console.error('Erro ao salvar colaborador:', error);
+        return { success: false, error: error.message || 'Ocorreu um erro no servidor.' };
+    }
+}
+
+export async function removeCollaborator(userId: string) {
+    'use server';
+    try {
+        await getAuth().deleteUser(userId);
+        await db.collection('users').doc(userId).delete();
+        revalidatePath('/dashboard');
+        return { success: true, message: 'Colaborador removido com sucesso!' };
+    } catch (error: any) {
+        console.error('Erro ao remover colaborador:', error);
+        return { success: false, error: error.message || 'Ocorreu um erro no servidor.' };
+    }
+}
+
+// --- Signature Actions ---
+export async function signTimeSheet(userId: string, monthYear: string) {
+    'use server';
+    try {
+        const signature = await addSignature(userId, monthYear);
+        revalidatePath('/dashboard');
+        return { success: true, signature };
+    } catch (error: any) {
+        return { success: false, error: error.message };
+    }
+}
+
+
+// --- Individual Schedule Actions ---
+export async function saveIndividualSchedule(formData: FormData) {
+    'use server';
+    const userId = formData.get('userId') as string;
+    if (!userId) {
+        return { success: false, error: "ID do usuário não encontrado." };
+    }
+
+    const schedule: IndividualSchedule = {};
+    const dateKeys: string[] = [];
+
+    // Agrupa chaves de data para evitar iterações redundantes
+    for (const key of formData.keys()) {
+        const datePart = key.split('-').slice(0, 3).join('-');
+        if (!isNaN(new Date(datePart).getTime()) && !dateKeys.includes(datePart)) {
+            dateKeys.push(datePart);
+        }
+    }
+    
+    // Processa cada dia
+    for (const dateKey of dateKeys) {
+        const start = formData.get(`${dateKey}-start`) as string | null;
+        const end = formData.get(`${dateKey}-end`) as string | null;
+
+        if (start && end) {
+            schedule[dateKey] = { start, end };
+        } else {
+            // Se um dos campos estiver vazio, considera como folga para esse dia
+            schedule[dateKey] = null;
+        }
+    }
+
+    try {
+        await dbUpdateUserSchedule(userId, schedule);
+        revalidatePath('/dashboard');
+        return { success: true, message: "Escala atualizada com sucesso!" };
+    } catch (error) {
+        console.error("Erro ao salvar escala individual:", error);
+        return { success: false, error: "Falha ao salvar a escala no servidor." };
+    }
+}
+
+    
