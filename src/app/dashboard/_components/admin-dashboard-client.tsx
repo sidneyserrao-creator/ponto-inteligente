@@ -11,6 +11,7 @@ import { WorkPostManager } from './admin/work-post-manager';
 import { Home, Megaphone, Users, FileText, Calendar, History, MapPin, FileSignature } from 'lucide-react';
 import type { User, Announcement, WorkPost, WorkShift, TimeLog, Signature, Occurrence } from '@/lib/types';
 import { SignedTimeSheets } from './admin/signed-time-sheets';
+import { WorkShiftManager } from './admin/work-shift-manager';
 
 // Metadados para as abas
 const tabs = {
@@ -18,7 +19,8 @@ const tabs = {
   comunicados: { label: 'Comunicados', icon: Megaphone },
   colaboradores: { label: 'Colaboradores', icon: Users },
   documentos: { label: 'Documentos', icon: FileText },
-  escalas: { label: 'Escalas', icon: Calendar },
+  escalas: { label: 'Escalas de Turno', icon: Calendar },
+  escalas_individuais: { label: 'Escalas Individuais', icon: Calendar },
   pontos: { label: 'Pontos Assinados', icon: FileSignature },
   ocorrencias: { label: 'Ocorrências', icon: History },
   postos: { label: 'Postos de Trabalho', icon: MapPin },
@@ -64,10 +66,11 @@ export default function AdminDashboardClient(props: {
         {activeTab === 'comunicados' && <AnnouncementManager initialAnnouncements={props.announcements} collaborators={props.allUsers} />}
         {activeTab === 'colaboradores' && <CollaboratorManager collaborators={props.allUsers} workPosts={props.workPosts} />}
         {activeTab === 'documentos' && <DocumentManager collaborators={props.allUsers} />}
-        {activeTab === 'escalas' && <IndividualScheduleManager allUsers={props.allUsers} workShifts={props.workShifts} workPosts={props.workPosts} />}
+        {activeTab === 'escalas' && <WorkShiftManager initialWorkShifts={props.workShifts}/>}
+        {activeTab === 'escalas_individuais' && <IndividualScheduleManager allUsers={props.allUsers} workPosts={props.workPosts} />}
         {activeTab === 'pontos' && <SignedTimeSheets collaborators={props.allUsers.filter(u => u.role !== 'admin')} signatureStatus={props.signatureStatus} allTimeLogs={props.allTimeLogs} />}
         {activeTab === 'ocorrencias' && <OccurrenceManager allUsers={props.allUsers} initialOccurrences={props.occurrences} />}
-        {activeTab === 'postos' && <WorkPostManager initialWorkPosts={props.workPosts} supervisors={props.allUsers.filter(u => u.role === 'supervisor')} allUsers={props.allUsers} />}
+        {activeTab === 'postos' && <WorkPostManager initialWorkPosts={props.workPosts} allUsers={props.allUsers} />}
       </main>
     </div>
   );

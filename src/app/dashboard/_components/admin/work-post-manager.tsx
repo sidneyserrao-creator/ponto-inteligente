@@ -197,14 +197,15 @@ function WorkPostForm({ workPost, supervisors, onFinished }: { workPost?: WorkPo
 
 interface WorkPostManagerProps {
   initialWorkPosts: WorkPost[];
-  supervisors: User[];
   allUsers: User[];
 }
 
-export function WorkPostManager({ initialWorkPosts, supervisors, allUsers }: WorkPostManagerProps) {
+export function WorkPostManager({ initialWorkPosts, allUsers }: WorkPostManagerProps) {
   const { toast } = useToast();
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingPost, setEditingPost] = useState<WorkPost | null>(null);
+  
+  const supervisors = allUsers.filter(u => u.role === 'supervisor');
 
   const handleAdd = () => {
     setEditingPost(null);

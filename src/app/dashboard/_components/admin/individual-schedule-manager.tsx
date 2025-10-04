@@ -6,7 +6,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
 import { saveIndividualSchedule } from '@/lib/actions';
-import type { User, WorkPost, IndividualSchedule } from '@/lib/types';
+import type { User, WorkPost } from '@/lib/types';
 import { CalendarDays, Save, User as UserIcon } from 'lucide-react';
 import { useFormStatus } from 'react-dom';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
