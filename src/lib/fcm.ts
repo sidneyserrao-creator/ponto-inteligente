@@ -46,7 +46,7 @@ export async function sendNotification(userId: string, notification: { title: st
         body: notification.body,
       },
       webpush: {
-        fcmOptions: { // Correção: fcm_options para fcmOptions
+        fcmOptions: {
           link: '/dashboard' // Link para abrir ao clicar na notificação
         }
       }
