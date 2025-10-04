@@ -90,7 +90,7 @@ export const getUsersByWorkPostIds = async (workPostIds: string[]): Promise<User
     }
 
     const userPromises = chunks.map(chunk => 
-        adminDb.collection('users').where('workPostId', 'in', chunk).orderBy('name').get()
+        adminDb.collection('users').where('workPostId', 'in', chunk).get()
     );
 
     const querySnapshots = await Promise.all(userPromises);
