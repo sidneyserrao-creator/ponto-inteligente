@@ -5,6 +5,7 @@ import { format } from 'date-fns';
 import CollaboratorDashboardClient from './collaborator-dashboard-client';
 import type { User, DailyBreakSchedule, TimeLog, Signature, Payslip, Announcement } from '@/lib/types';
 import { useEffect, useState } from 'react';
+import DashboardLoader from './dashboard-loader';
 
 // Aceita a nova prop breakSchedule
 export default function CollaboratorDashboard({ 
@@ -46,7 +47,7 @@ export default function CollaboratorDashboard({
   }, [user.id]);
   
   if (loading) {
-    return <div>Carregando...</div>;
+    return <DashboardLoader />;
   }
 
   return (
