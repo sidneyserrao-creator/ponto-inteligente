@@ -32,7 +32,7 @@ import type {
   Signature,
 } from './types';
 import { cookies } from 'next/headers';
-import { SESSION_COOKIE_NAME, createSession, deleteSession, getCurrentUser } from './auth';
+import { createSession, deleteSession } from './auth';
 import { redirect } from 'next/navigation';
 import {
   validateTimeLogsWithFacialRecognition,
@@ -42,6 +42,9 @@ import { createElement } from 'react';
 import { renderToBuffer } from '@react-pdf/renderer';
 import { TimeSheetDocument } from '@/app/dashboard/_components/pdf/time-sheet-document';
 
+
+const SESSION_COOKIE_NAME = 'bit_seguranca_session';
+const expiresIn = 60 * 60 * 24 * 5 * 1000; // 5 dias
 
 // --- Auth Actions ---
 export async function login(idToken: string) {
@@ -54,7 +57,7 @@ export async function login(idToken: string) {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
       path: '/',
-      maxAge: 60 * 60 * 24 * 5, // 5 dias
+      maxAge: expiresIn / 1000,
     });
     // O redirecionamento será tratado pelo cliente após o sucesso.
   } catch (e: any) {
@@ -450,9 +453,10 @@ export async function signTimeSheet(userId: string, monthYear: string): Promise<
     return { success: false, error: 'Usuário não encontrado.' };
   }
 
-  const logs = await getTimeLogsForUser(userId); 
+  const logs = await getTimeLogsForUser(userId, monthYear); 
   const signedAt = new Date().toISOString();
 
+  // Criamos uma assinatura temporária para injetar no PDF
   const tempSignature: Signature = {
     id: '', 
     userId,
@@ -461,17 +465,17 @@ export async function signTimeSheet(userId: string, monthYear: string): Promise<
   };
 
   try {
-    // 1. Gerar o PDF em memória
+    // 1. Gerar o PDF em memória usando @react-pdf/renderer
     const pdfBuffer = await renderToBuffer(
       createElement(TimeSheetDocument, { user, logs, signature: tempSignature })
     );
   
     // 2. Fazer o upload para o Storage
     const filePath = `signed_sheets/${userId}/${monthYear}.pdf`;
-    const pdfUrl = await uploadFile(pdfBuffer, filePath, 'application/pdf');
+    await uploadFile(pdfBuffer, filePath, 'application/pdf');
 
     // 3. Salvar os metadados da assinatura no Firestore
-    const signature = await addSignature(userId, monthYear, pdfUrl, signedAt);
+    const signature = await addSignature(userId, monthYear, signedAt, filePath);
 
     revalidatePath('/dashboard');
     return { success: true, signature };

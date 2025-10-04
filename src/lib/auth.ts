@@ -5,8 +5,8 @@ import { findUserById } from './data';
 import type { User } from './types';
 import { auth as adminAuth } from './firebase-admin';
 
-export const SESSION_COOKIE_NAME = 'bit_seguranca_session';
-export const expiresIn = 60 * 60 * 24 * 5 * 1000; // 5 days
+const SESSION_COOKIE_NAME = 'bit_seguranca_session';
+const expiresIn = 60 * 60 * 24 * 5 * 1000; // 5 days
 
 /**
  * Cria o valor do cookie de sessão, mas não o define.
@@ -27,14 +27,14 @@ export async function createSession(idToken: string): Promise<string> {
 export async function getSession(): Promise<{ uid: string } | null> {
     if (!adminAuth) return null;
 
-    const sessionCookie = (cookies() as any).get(SESSION_COOKIE_NAME);
-    if (sessionCookie) {
+    const sessionCookieValue = cookies().get(SESSION_COOKIE_NAME)?.value;
+    if (sessionCookieValue) {
         try {
-            const decodedClaims = await adminAuth.verifySessionCookie(sessionCookie.value, true);
+            const decodedClaims = await adminAuth.verifySessionCookie(sessionCookieValue, true);
             return { uid: decodedClaims.uid };
         } catch (error) {
             console.warn('Invalid session cookie:', error);
-            (cookies() as any).delete(SESSION_COOKIE_NAME);
+            cookies().delete(SESSION_COOKIE_NAME);
             return null;
         }
     }
@@ -42,7 +42,7 @@ export async function getSession(): Promise<{ uid: string } | null> {
 }
 
 export async function deleteSession() {
-  (cookies() as any).delete(SESSION_COOKIE_NAME);
+  cookies().delete(SESSION_COOKIE_NAME);
 }
 
 export async function getCurrentUser(): Promise<User | null> {
