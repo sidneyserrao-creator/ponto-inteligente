@@ -70,31 +70,18 @@ export default function CollaboratorDashboardClient({
 }) {
   const [currentLogs, setCurrentLogs] = useState(timeLogs);
 
-  const handleTimeLogUpdate = (newLog: TimeLog) => {
-    setCurrentLogs(prevLogs => {
-        const existingLogIndex = prevLogs.findIndex(log => log.id === newLog.id);
-        if (existingLogIndex > -1) {
-            const updatedLogs = [...prevLogs];
-            updatedLogs[existingLogIndex] = newLog;
-            return updatedLogs;
-        } else {
-            return [...prevLogs, newLog];
-        }
-    });
-  };
-
   return (
     <div className="space-y-6">
       {breakSchedule && <BreakScheduleCard schedule={breakSchedule} />}
       
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="space-y-6">
-          <ClockWidget user={user} onTimeLogUpdate={handleTimeLogUpdate} />
+          <ClockWidget user={user} timeLogs={currentLogs} />
           <MonthlySignature userId={user.id} initialSignature={signature} />
         </div>
 
         <div className="lg:col-span-2 space-y-6">
-          <TimeLogsTable initialTimeLogs={currentLogs} />
+          <TimeLogsTable timeLogs={currentLogs} />
           <Announcements announcements={announcements} user={user} />
         </div>
       </div>

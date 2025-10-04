@@ -187,7 +187,7 @@ export function ClockWidget({ user, timeLogs }: ClockWidgetProps) {
       setLocationError(null);
   }
 
-  const lastAction = timeLogs[0]?.action;
+  const lastAction = timeLogs?.[0]?.action;
 
   const getNextActions = (): { action: TimeLogAction; label: string; icon: React.ElementType }[] => {
     if (isProcessing) return [];
@@ -309,5 +309,3 @@ export function ClockWidget({ user, timeLogs }: ClockWidgetProps) {
     </GlassCard>
   );
 }
-
-    

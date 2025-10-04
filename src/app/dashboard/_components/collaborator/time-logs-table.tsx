@@ -19,7 +19,7 @@ const actionDetails = {
   clock_out: { label: 'Saída', icon: LogOut, color: 'text-red-400' },
 };
 
-const ValidationStatus = ({ validation }: { validation: TimeLog['validation'] }) => {
+const ValidationStatus = ({ validation }: { validation?: TimeLog['validation'] }) => {
   if (!validation) {
     return <Badge variant="secondary"><AlertTriangle className="mr-1 h-3 w-3"/>Pendente</Badge>;
   }
@@ -47,7 +47,7 @@ export function TimeLogsTable({ timeLogs }: TimeLogsTableProps) {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {timeLogs.length > 0 ? timeLogs.map((log) => {
+              {timeLogs && timeLogs.length > 0 ? timeLogs.map((log) => {
                 const details = actionDetails[log.action];
                 const Icon = details.icon;
                 return (
