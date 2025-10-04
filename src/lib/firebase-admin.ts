@@ -1,5 +1,3 @@
-'use server';
-
 import admin from 'firebase-admin';
 
 // Array com as variáveis de ambiente obrigatórias para o Admin SDK
