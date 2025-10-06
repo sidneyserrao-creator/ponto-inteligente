@@ -1,33 +1,32 @@
-// 🔒 Função “Pontos Assinados” desativada temporariamente – será reativada em atualização futura.
 'use client';
 
 import { useState } from 'react';
 import dynamic from 'next/dynamic';
-import { AnnouncementManager } from './admin/announcement-manager';
-import { CollaboratorManager } from './admin/collaborator-manager';
-import { DocumentManager } from './admin/document-manager';
-import { IndividualScheduleManager } from './admin/individual-schedule-manager';
-import { OccurrenceManager } from './admin/occurrence-manager';
-import { TimeLogHistory } from './admin/time-log-history';
-import { Home, Megaphone, Users, FileText, Calendar, History, MapPin, Loader2 } from 'lucide-react'; 
+import { Home, Megaphone, Users, FileText, Calendar, History, MapPin, Loader2 } from 'lucide-react';
 import type { User, Announcement, WorkPost, WorkShift, TimeLog, Signature, Occurrence } from '@/lib/types';
-import { WorkShiftManager } from './admin/work-shift-manager';
 
-// Carregamento dinâmico para o WorkPostManager para evitar erros de SSR
-const WorkPostManager = dynamic(() => import('./admin/work-post-manager').then(mod => mod.WorkPostManager), {
-  ssr: false,
-  loading: () => <div className="flex items-center justify-center p-4"><Loader2 className="h-6 w-6 animate-spin" /> Carregando gerenciador de postos...</div>
-});
+// --- Carregamento dinâmico para TODOS os componentes da aba ---
+const dynamicOpts = { ssr: false, loading: () => <div className="flex items-center justify-center p-8"><Loader2 className="h-8 w-8 animate-spin" /></div> };
+
+const TimeLogHistory = dynamic(() => import('./admin/time-log-history').then(mod => mod.TimeLogHistory), dynamicOpts);
+const AnnouncementManager = dynamic(() => import('./admin/announcement-manager').then(mod => mod.AnnouncementManager), dynamicOpts);
+const CollaboratorManager = dynamic(() => import('./admin/collaborator-manager').then(mod => mod.CollaboratorManager), dynamicOpts);
+const DocumentManager = dynamic(() => import('./admin/document-manager').then(mod => mod.DocumentManager), dynamicOpts);
+const WorkShiftManager = dynamic(() => import('./admin/work-shift-manager').then(mod => mod.WorkShiftManager), dynamicOpts);
+const IndividualScheduleManager = dynamic(() => import('./admin/individual-schedule-manager').then(mod => mod.IndividualScheduleManager), dynamicOpts);
+const OccurrenceManager = dynamic(() => import('./admin/occurrence-manager').then(mod => mod.OccurrenceManager), dynamicOpts);
+const WorkPostManager = dynamic(() => import('./admin/work-post-manager').then(mod => mod.WorkPostManager), dynamicOpts);
+// ---------------------------------------------------------
 
 const tabs = {
-  inicio: { label: 'Início', icon: Home },
-  comunicados: { label: 'Comunicados', icon: Megaphone },
-  colaboradores: { label: 'Colaboradores', icon: Users },
-  documentos: { label: 'Documentos', icon: FileText },
-  escalas: { label: 'Escalas de Turno', icon: Calendar },
-  escalas_individuais: { label: 'Escalas Individuais', icon: Calendar },
-  ocorrencias: { label: 'Ocorrências', icon: History },
-  postos: { label: 'Postos de Trabalho', icon: MapPin },
+  inicio: { label: 'Início', icon: Home, component: TimeLogHistory },
+  comunicados: { label: 'Comunicados', icon: Megaphone, component: AnnouncementManager },
+  colaboradores: { label: 'Colaboradores', icon: Users, component: CollaboratorManager },
+  documentos: { label: 'Documentos', icon: FileText, component: DocumentManager },
+  escalas: { label: 'Escalas de Turno', icon: Calendar, component: WorkShiftManager },
+  escalas_individuais: { label: 'Escalas Individuais', icon: Calendar, component: IndividualScheduleManager },
+  ocorrencias: { label: 'Ocorrências', icon: History, component: OccurrenceManager },
+  postos: { label: 'Postos de Trabalho', icon: MapPin, component: WorkPostManager },
 };
 
 type TabKey = keyof typeof tabs;
@@ -39,14 +38,25 @@ export default function AdminDashboardClient(props: {
   workPosts: WorkPost[];
   workShifts: WorkShift[];
   allTimeLogs: TimeLog[];
-  signatureStatus: Record<string, Signature | null>; 
+  signatureStatus: Record<string, Signature | null>;
   occurrences: Occurrence[];
 }) {
   const [activeTab, setActiveTab] = useState<TabKey>('inicio');
+  const ActiveComponent = tabs[activeTab].component;
+
+  const componentProps: any = {
+      inicio: { allTimeLogs: props.allTimeLogs, allUsers: props.allUsers },
+      comunicados: { initialAnnouncements: props.announcements, collaborators: props.allUsers },
+      colaboradores: { collaborators: props.allUsers, workPosts: props.workPosts },
+      documentos: { collaborators: props.allUsers },
+      escalas: { initialWorkShifts: props.workShifts },
+      escalas_individuais: { allUsers: props.allUsers, workPosts: props.workPosts },
+      ocorrencias: { allUsers: props.allUsers, initialOccurrences: props.occurrences },
+      postos: { initialWorkPosts: props.workPosts, allUsers: props.allUsers },
+  };
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-[240px_1fr] gap-8">
-      {/* Navegação Lateral */}
       <nav className="flex flex-col gap-2">
         {(Object.keys(tabs) as TabKey[]).map(key => {
           const { label, icon: Icon } = tabs[key];
@@ -64,16 +74,8 @@ export default function AdminDashboardClient(props: {
         })}
       </nav>
 
-      {/* Conteúdo Principal Corrigido */}
       <main>
-        {activeTab === 'inicio' && <TimeLogHistory allTimeLogs={props.allTimeLogs} allUsers={props.allUsers} />}
-        {activeTab === 'comunicados' && <AnnouncementManager initialAnnouncements={props.announcements} collaborators={props.allUsers} />}
-        {activeTab === 'colaboradores' && <CollaboratorManager collaborators={props.allUsers} workPosts={props.workPosts} />}
-        {activeTab === 'documentos' && <DocumentManager collaborators={props.allUsers} />}
-        {activeTab === 'escalas' && <WorkShiftManager initialWorkShifts={props.workShifts}/>}
-        {activeTab === 'escalas_individuais' && <IndividualScheduleManager allUsers={props.allUsers} workPosts={props.workPosts} />}
-        {activeTab === 'ocorrencias' && <OccurrenceManager allUsers={props.allUsers} initialOccurrences={props.occurrences} />}
-        {activeTab === 'postos' && <WorkPostManager initialWorkPosts={props.workPosts} allUsers={props.allUsers} />}
+        <ActiveComponent {...componentProps[activeTab]} />
       </main>
     </div>
   );
