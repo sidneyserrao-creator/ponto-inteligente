@@ -1,44 +1,49 @@
 import admin from 'firebase-admin';
 
-// Array com as variáveis de ambiente obrigatórias para o Admin SDK
-const REQUIRED_ADMIN_ENV_VARS = [
-  'FIREBASE_PROJECT_ID',
-  'FIREBASE_CLIENT_EMAIL',
-  'FIREBASE_PRIVATE_KEY',
-  'NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET',
-];
-
-// Função para verificar se as variáveis de ambiente essenciais estão definidas
-const checkAdminEnvVars = () => {
-  const missingVars = REQUIRED_ADMIN_ENV_VARS.filter(varName => !process.env[varName]);
-  if (missingVars.length > 0) {
-    // Este erro será muito claro no console do servidor, apontando a causa raiz.
-    throw new Error(`CRÍTICO: As seguintes variáveis de ambiente do Firebase Admin não estão definidas: ${missingVars.join(', ')}. Verifique seu arquivo .env.local e reinicie o servidor.`);
-  }
-};
-
+// Verifica se o app já foi inicializado para evitar erros
 if (!admin.apps.length) {
-  try {
-    // Primeiro, verifica se as variáveis existem.
-    checkAdminEnvVars();
-
-    // Se todas existirem, tenta inicializar o app.
+  // Em um ambiente do Google Cloud (como o Firebase App Hosting),
+  // o SDK descobre as credenciais da conta de serviço automaticamente.
+  // Só precisamos fornecer credenciais manuais para o desenvolvimento local.
+  if (process.env.NODE_ENV === 'production') {
+    console.log("Inicializando o Firebase Admin SDK com credenciais padrão para produção...");
+    // No ambiente de produção, o storageBucket também pode precisar ser configurado
+    // se não for o padrão. Certifique-se de que NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET
+    // está definido nas configurações do seu ambiente do App Hosting.
     admin.initializeApp({
-      credential: admin.credential.cert({
-        projectId: process.env.FIREBASE_PROJECT_ID,
-        clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
-        // A chave privada é processada para garantir o formato correto de quebra de linha.
-        privateKey: (process.env.FIREBASE_PRIVATE_KEY as string).replace(/\\n/g, '\n'),
-      }),
-      storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
+        storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
     });
-    console.log("Firebase Admin SDK inicializado com sucesso.");
-  } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : 'Ocorreu um erro desconhecido.';
-    // Este console.error aparecerá nos logs do servidor.
-    console.error("Falha catastrófica ao inicializar o Firebase Admin SDK:", errorMessage);
-    // Lançar o erro impede que a aplicação continue em um estado quebrado.
-    throw new Error(`Falha na inicialização do Firebase Admin: ${errorMessage}`);
+    console.log("Firebase Admin SDK inicializado com sucesso no ambiente de produção.");
+  } else {
+    // Ambiente de desenvolvimento local: usar credenciais do .env.local
+    console.log("Inicializando o Firebase Admin SDK para desenvolvimento local...");
+    const REQUIRED_ADMIN_ENV_VARS = [
+      'FIREBASE_PROJECT_ID',
+      'FIREBASE_CLIENT_EMAIL',
+      'FIREBASE_PRIVATE_KEY',
+      'NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET',
+    ];
+
+    const missingVars = REQUIRED_ADMIN_ENV_VARS.filter(varName => !process.env[varName]);
+    if (missingVars.length > 0) {
+      throw new Error(`CRÍTICO: As seguintes variáveis de ambiente do Firebase Admin não estão definidas: ${missingVars.join(', ')}. Verifique seu arquivo .env.local e reinicie o servidor.`);
+    }
+
+    try {
+      admin.initializeApp({
+        credential: admin.credential.cert({
+          projectId: process.env.FIREBASE_PROJECT_ID,
+          clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
+          privateKey: (process.env.FIREBASE_PRIVATE_KEY as string).replace(/\\n/g, '\n'),
+        }),
+        storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
+      });
+      console.log("Firebase Admin SDK inicializado com sucesso para desenvolvimento local.");
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Ocorreu um erro desconhecido.';
+      console.error("Falha catastrófica ao inicializar o Firebase Admin SDK:", errorMessage);
+      throw new Error(`Falha na inicialização do Firebase Admin: ${errorMessage}`);
+    }
   }
 }
 
