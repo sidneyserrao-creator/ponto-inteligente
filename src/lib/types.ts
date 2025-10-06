@@ -58,7 +58,7 @@ export type Payslip = {
   id: string;
   userId: string;
   fileName: string;
-  uploadDate: string;
+  uploadDate?: string;
   fileUrl: string;
 };
 

@@ -88,7 +88,7 @@ export default function CollaboratorDashboardClient({
       </div>
 
       <div className="grid gap-6">
-        <MyPayslips payslips={payslips} />
+        <MyPayslips user={user} payslips={payslips} />
       </div>
     </div>
   );

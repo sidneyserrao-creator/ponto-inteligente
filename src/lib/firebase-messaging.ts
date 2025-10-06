@@ -7,16 +7,19 @@ const VAPID_KEY = process.env.NEXT_PUBLIC_FIREBASE_VAPID_KEY;
 
 /**
  * Solicita permissão para notificações e obtém o token FCM.
+ * @param swRegistration - O objeto de registro do Service Worker ativo.
  * @returns O token FCM ou null se a permissão for negada.
  */
-export const getMessagingToken = async (): Promise<string | null> => {
+export const getMessagingToken = async (swRegistration: ServiceWorkerRegistration): Promise<string | null> => {
   try {
     const messaging = getMessaging(app);
     const permission = await Notification.requestPermission();
 
     if (permission === 'granted') {
+      // Passa o registro do Service Worker explicitamente para evitar race conditions.
       const token = await getToken(messaging, {
         vapidKey: VAPID_KEY,
+        serviceWorkerRegistration: swRegistration,
       });
       console.log('FCM Token:', token);
       return token;

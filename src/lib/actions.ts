@@ -27,7 +27,7 @@ export async function login(idToken: string) {
     }
     try {
         const sessionCookie = await createSession(idToken);
-        cookies().set(SESSION_COOKIE_NAME, sessionCookie, {
+        (await cookies()).set(SESSION_COOKIE_NAME, sessionCookie, {
             httpOnly: true,
             secure: process.env.NODE_ENV === 'production',
             path: '/',
@@ -77,7 +77,7 @@ export async function recordTimeLog(
             action,
             timestamp: timestampOverride || new Date().toISOString(),
             photoUrl,
-            location,
+            location: location || undefined,
         };
 
         const docRef = await db.collection('timeLogs').add(newLog);
@@ -244,7 +244,6 @@ export async function uploadPayslip(formData: FormData) {
       userId,
       fileName: file.name,
       fileUrl: filePath, // Storing path instead of full URL for security
-      uploadDate: new Date().toISOString(),
     });
 
     revalidatePath('/dashboard');

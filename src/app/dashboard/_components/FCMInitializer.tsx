@@ -10,7 +10,7 @@ export default function FCMInitializer({ user }: { user: User }) {
     if (typeof window !== 'undefined' && 'serviceWorker' in navigator) {
       const setupFCM = async () => {
         try {
-          // 1. Constrói a URL do Service Worker com a configuração do Firebase como parâmetros de busca
+          // Constrói a URL do Service Worker com a configuração do Firebase
           const firebaseConfig = {
             apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
             authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
@@ -20,7 +20,6 @@ export default function FCMInitializer({ user }: { user: User }) {
             appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
           };
 
-          // Remove quaisquer chaves que não tenham um valor
           const cleanedConfig: { [key: string]: string } = {};
           for (const key in firebaseConfig) {
             const value = (firebaseConfig as any)[key];
@@ -28,19 +27,17 @@ export default function FCMInitializer({ user }: { user: User }) {
               cleanedConfig[key] = value;
             }
           }
-
+          
           const swUrl = `/firebase-messaging-sw.js?${new URLSearchParams(cleanedConfig).toString()}`;
 
-          // 2. Registra o Service Worker do Firebase Messaging
-          await navigator.serviceWorker.register(swUrl);
+          // 1. Registra o Service Worker e captura o objeto de registro
+          const swRegistration = await navigator.serviceWorker.register(swUrl);
 
-          // 3. Espera o Service Worker estar pronto e ativo
-          await navigator.serviceWorker.ready;
-          
-          // 4. Agora sim, solicita o token de notificação
-          const token = await getMessagingToken();
+          // 2. Solicita o token de notificação, passando o registro explícito
+          // Isso elimina a race condition e garante que o PushManager tenha um SW ativo.
+          const token = await getMessagingToken(swRegistration);
 
-          // 5. Se o token for obtido, salva no Firestore
+          // 3. Se o token for obtido, associa ao usuário no backend
           if (token) {
             await associateDeviceToken(user.id, token);
           }

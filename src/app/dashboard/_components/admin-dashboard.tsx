@@ -1,22 +1,20 @@
-import { getAnnouncements, getUsers, getWorkPosts, getWorkShifts, getAllTimeLogs, getAllSignatures, getOccurrences } from '@/lib/data';
+// 🔒 Função “Pontos Assinados” desativada temporariamente – será reativada em atualização futura.
+import { getAnnouncements, getUsers, getWorkPosts, getWorkShifts, getAllTimeLogs, getOccurrences } from '@/lib/data'; // getAllSignatures removido
 import { format } from 'date-fns';
 import AdminDashboardClient from './admin-dashboard-client';
 import type { User } from '@/lib/types';
-import { SupervisorDashboard } from './supervisor/supervisor-dashboard';
+import { SupervisorDashboard } from './supervisor/supervisor-dashboard'; // Corrigido o caminho para o dashboard do supervisor
 
 export default async function AdminDashboard({ user }: { user: User }) {
   const allAnnouncements = await getAnnouncements();
   const currentMonthYear = format(new Date(), 'yyyy-MM');
 
-  // Busca usuários primeiro, pois a função de assinaturas pode precisar deles.
   const allUsers = await getUsers();
 
-  const [workPosts, workShifts, allTimeLogs, signatureStatus, occurrences] = await Promise.all([
+  const [workPosts, workShifts, allTimeLogs, occurrences] = await Promise.all([
     getWorkPosts(),
     getWorkShifts(),
     getAllTimeLogs(),
-    // Passa a lista de usuários para evitar uma busca duplicada dentro da função.
-    getAllSignatures(currentMonthYear, allUsers),
     getOccurrences(),
   ]);
 
@@ -37,7 +35,7 @@ export default async function AdminDashboard({ user }: { user: User }) {
             announcements={allAnnouncements}
             teamLogs={teamLogs}
             supervisedPosts={supervisedPosts}
-            allUsers={allUsers}
+            teamMembers={teamMembers} // Corrigido: passando a lista de membros da equipe em vez de todos os usuários
         />
     )
   }
@@ -50,7 +48,7 @@ export default async function AdminDashboard({ user }: { user: User }) {
       workPosts={workPosts}
       workShifts={workShifts}
       allTimeLogs={allTimeLogs}
-      signatureStatus={signatureStatus}
+      signatureStatus={{}} // Passando um objeto vazio para manter a prop, mas sem dados
       occurrences={occurrences}
     />
   );

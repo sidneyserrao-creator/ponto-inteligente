@@ -4,18 +4,38 @@ import { GlassCard, CardContent, CardHeader, CardTitle, CardDescription } from '
 import { Button } from '@/components/ui/button';
 import { recordTimeLog } from '@/lib/actions';
 import { useToast } from '@/hooks/use-toast';
-import type { User, TimeLog, TimeLogAction } from '@/lib/types';
-import { Clock, Coffee, Play, LogOut, Loader2, Camera, ArrowLeft, Video, VideoOff, WifiOff, MapPin } from 'lucide-react';
+import type { User, TimeLog, TimeLogAction, WorkPost } from '@/lib/types';
+import { Clock, Coffee, Play, LogOut, Loader2, Camera, ArrowLeft, Video, VideoOff, WifiOff, MapPin, ShieldAlert } from 'lucide-react';
 import Image from 'next/image';
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
 import { addToSyncQueue, startSyncProcess } from '@/lib/sync';
+import { format } from 'date-fns';
+import { doc, getDoc } from 'firebase/firestore';
+import { db } from '@/lib/firebase';
 
 type ViewState = 'idle' | 'camera' | 'options';
 
 interface ClockWidgetProps {
   user: User;
-  timeLogs: TimeLog[];
+  timeLogs?: TimeLog[];
 }
+
+// Função para calcular a distância entre duas coordenadas em metros (Fórmula de Haversine)
+const calculateDistance = (lat1: number, lon1: number, lat2: number, lon2: number) => {
+  const R = 6371e3; // Raio da Terra em metros
+  const φ1 = lat1 * Math.PI / 180;
+  const φ2 = lat2 * Math.PI / 180;
+  const Δφ = (lat2 - lat1) * Math.PI / 180;
+  const Δλ = (lon2 - lon1) * Math.PI / 180;
+
+  const a = Math.sin(Δφ / 2) * Math.sin(Δφ / 2) +
+            Math.cos(φ1) * Math.cos(φ2) *
+            Math.sin(Δλ / 2) * Math.sin(Δλ / 2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+
+  return R * c; // Distância em metros
+};
+
 
 export function ClockWidget({ user, timeLogs }: ClockWidgetProps) {
   const [view, setView] = useState<ViewState>('idle');
@@ -26,29 +46,47 @@ export function ClockWidget({ user, timeLogs }: ClockWidgetProps) {
   const [locationError, setLocationError] = useState<string | null>(null);
   const [hasCameraPermission, setHasCameraPermission] = useState<boolean | null>(null);
   const [isOnline, setIsOnline] = useState(true);
+  const [workPost, setWorkPost] = useState<WorkPost | null>(null);
+  const [isLoadingPost, setIsLoadingPost] = useState(true);
 
   const videoRef = useRef<HTMLVideoElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
   const { toast } = useToast();
+  
+  useEffect(() => {
+    // Busca os dados do posto de trabalho do colaborador
+    const fetchWorkPost = async () => {
+      if (!user.workPostId) {
+        setIsLoadingPost(false);
+        return;
+      }
+      try {
+        const postDoc = await getDoc(doc(db, 'workPosts', user.workPostId));
+        if (postDoc.exists()) {
+          setWorkPost({ id: postDoc.id, ...postDoc.data() } as WorkPost);
+        }
+      } catch (error) {
+        console.error("Erro ao buscar posto de trabalho:", error);
+      } finally {
+        setIsLoadingPost(false);
+      }
+    };
+
+    fetchWorkPost();
+  }, [user.workPostId]);
+
 
   useEffect(() => {
-    // Set initial time on client mount
     setCurrentTime(new Date());
-
-    // Start the sync process when the component mounts
     startSyncProcess();
-
     const timer = setInterval(() => setCurrentTime(new Date()), 1000);
-    
     const handleOnline = () => setIsOnline(true);
     const handleOffline = () => setIsOnline(false);
-
     if(typeof window !== 'undefined') {
       setIsOnline(navigator.onLine);
       window.addEventListener('online', handleOnline);
       window.addEventListener('offline', handleOffline);
     }
-    
     return () => {
       clearInterval(timer);
       if(typeof window !== 'undefined') {
@@ -60,14 +98,33 @@ export function ClockWidget({ user, timeLogs }: ClockWidgetProps) {
 
   const requestLocationAndCamera = () => {
     setLocationError(null);
-    // Request location
+    if (!workPost || !workPost.latitude || !workPost.longitude || !workPost.radius) {
+        toast({
+          variant: 'destructive',
+          title: 'Posto de Trabalho Não Definido',
+          description: 'Você não está associado a um posto de trabalho com localização definida. Contate o administrador.',
+        });
+        return;
+    }
+    
     navigator.geolocation.getCurrentPosition(
       (position) => {
-        setCurrentLocation({
-          latitude: position.coords.latitude,
-          longitude: position.coords.longitude,
-        });
-        // If location is successful, open camera
+        const userLat = position.coords.latitude;
+        const userLng = position.coords.longitude;
+        
+        const distance = calculateDistance(userLat, userLng, workPost.latitude!, workPost.longitude!);
+        
+        if(distance > workPost.radius!) {
+            setLocationError(`Você está a ${distance.toFixed(0)} metros de distância do seu posto de trabalho. Aproxime-se para registrar o ponto.`);
+            toast({
+                variant: 'destructive',
+                title: 'Fora do Perímetro',
+                description: 'Você precisa estar no seu posto de trabalho para registrar o ponto.',
+            });
+            return;
+        }
+
+        setCurrentLocation({ latitude: userLat, longitude: userLng });
         setView('camera');
       },
       (error) => {
@@ -76,11 +133,6 @@ export function ClockWidget({ user, timeLogs }: ClockWidgetProps) {
             message = 'Acesso à localização negado. Habilite a permissão nas configurações do navegador para registrar o ponto.'
         }
         setLocationError(message);
-        toast({
-          variant: 'destructive',
-          title: 'Erro de Localização',
-          description: message,
-        });
       },
       { enableHighAccuracy: true }
     );
@@ -96,7 +148,6 @@ export function ClockWidget({ user, timeLogs }: ClockWidgetProps) {
       }
       setHasCameraPermission(true);
     } catch (error) {
-      console.error('Error accessing camera:', error);
       setHasCameraPermission(false);
       toast({
         variant: 'destructive',
@@ -116,12 +167,8 @@ export function ClockWidget({ user, timeLogs }: ClockWidgetProps) {
   };
   
   useEffect(() => {
-    if (view === 'camera') {
-      startCamera();
-    } else {
-      stopCamera();
-    }
-    // Cleanup camera on component unmount
+    if (view === 'camera') startCamera();
+    else stopCamera();
     return () => stopCamera();
   }, [view]);
 
@@ -144,10 +191,11 @@ export function ClockWidget({ user, timeLogs }: ClockWidgetProps) {
     if (!capturedImage) return;
 
     setIsProcessing(true);
+    const locationToSend = currentLocation || null;
 
     if (!isOnline) {
         try {
-            await addToSyncQueue(user.id, action, capturedImage, currentLocation);
+            await addToSyncQueue(user.id, action, capturedImage, locationToSend);
             toast({ 
                 title: 'Ponto registrado offline',
                 description: 'Seus dados serão enviados assim que a conexão for restabelecida.'
@@ -164,17 +212,9 @@ export function ClockWidget({ user, timeLogs }: ClockWidgetProps) {
         return;
     }
 
-    const result = await recordTimeLog(user.id, action, capturedImage, currentLocation);
-
-    if (result.success) {
-      toast({ title: 'Sucesso!', description: 'Ponto registrado.' });
-    } else {
-      toast({
-        variant: 'destructive',
-        title: 'Falha na verificação',
-        description: result.message || 'Tente novamente.',
-      });
-    }
+    const result = await recordTimeLog(user.id, action, capturedImage, locationToSend);
+    if (result.success) toast({ title: 'Sucesso!', description: 'Ponto registrado.' });
+    else toast({ variant: 'destructive', title: 'Falha na verificação', description: result.message || 'Tente novamente.' });
     
     reset();
   };
@@ -193,13 +233,11 @@ export function ClockWidget({ user, timeLogs }: ClockWidgetProps) {
     if (isProcessing) return [];
     if (!lastAction || lastAction === 'clock_out') return [{ action: 'clock_in', label: 'Entrada', icon: Play }];
     switch (lastAction) {
-      case 'clock_in':
-      case 'break_end':
+      case 'clock_in': case 'break_end':
         return [{ action: 'break_start', label: 'Início do Intervalo', icon: Coffee }, { action: 'clock_out', label: 'Fim do Expediente', icon: LogOut }];
       case 'break_start':
         return [{ action: 'break_end', label: 'Fim do Intervalo', icon: Play }];
-      default:
-        return [];
+      default: return [];
     }
   };
 
@@ -227,25 +265,27 @@ export function ClockWidget({ user, timeLogs }: ClockWidgetProps) {
         <div className="text-center h-28">
           {currentTime ? (
             <>
-              <p className="text-6xl font-bold tracking-tighter text-primary">
-                {currentTime.toLocaleTimeString('pt-BR')}
-              </p>
-              <p className="text-muted-foreground">
-                {currentTime.toLocaleDateString('pt-BR', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
-              </p>
+              <p className="text-6xl font-bold tracking-tighter text-primary">{format(currentTime, 'HH:mm:ss')}</p>
+              <p className="text-muted-foreground">{currentTime.toLocaleDateString('pt-BR', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</p>
             </>
           ) : (
-             <div className="h-full flex items-center justify-center">
-                <Loader2 className="h-10 w-10 animate-spin text-primary" />
-             </div>
+             <div className="h-full flex items-center justify-center"><Loader2 className="h-10 w-10 animate-spin text-primary" /></div>
           )}
         </div>
 
         {view === 'idle' && (
           <div className="w-full max-w-sm text-center space-y-4">
-            <Button onClick={requestLocationAndCamera} className="w-full">
-              <Camera className="mr-2 h-4 w-4" /> Bater Ponto
+            <Button onClick={requestLocationAndCamera} className="w-full" disabled={isLoadingPost}>
+              {isLoadingPost ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : <Camera className="mr-2 h-4 w-4" />}
+              {isLoadingPost ? 'Verificando posto...' : 'Bater Ponto'}
             </Button>
+            {!isLoadingPost && !user.workPostId && (
+                <Alert variant="default">
+                    <ShieldAlert className="h-4 w-4" />
+                    <AlertTitle>Sem Posto de Trabalho</AlertTitle>
+                    <AlertDescription>Você não está alocado a um posto. Contate o administrador.</AlertDescription>
+                </Alert>
+            )}
              {locationError && (
                 <Alert variant="destructive">
                     <MapPin className="h-4 w-4" />
@@ -262,46 +302,24 @@ export function ClockWidget({ user, timeLogs }: ClockWidgetProps) {
                 <video ref={videoRef} className="w-full h-full object-cover" autoPlay muted playsInline />
                 {hasCameraPermission === false && (
                     <div className="absolute inset-0 flex flex-col items-center justify-center bg-background/80 text-center">
-                        <VideoOff className="h-10 w-10 text-destructive mb-2"/>
-                        <p className="font-semibold">Câmera não disponível</p>
-                        <p className="text-sm text-muted-foreground">Verifique as permissões no seu navegador.</p>
+                        <VideoOff className="h-10 w-10 text-destructive mb-2"/><p className="font-semibold">Câmera não disponível</p><p className="text-sm text-muted-foreground">Verifique as permissões no seu navegador.</p>
                     </div>
                 )}
             </div>
             <div className="flex gap-4 mt-4">
-              <Button variant="outline" onClick={reset} className="flex-1">
-                <ArrowLeft className="mr-2 h-4 w-4" /> Cancelar
-              </Button>
-              <Button onClick={handleCapture} className="flex-1" disabled={hasCameraPermission !== true}>
-                <Camera className="mr-2 h-4 w-4" /> Registrar
-              </Button>
+              <Button variant="outline" onClick={reset} className="flex-1"><ArrowLeft className="mr-2 h-4 w-4" /> Cancelar</Button>
+              <Button onClick={handleCapture} className="flex-1" disabled={hasCameraPermission !== true}><Camera className="mr-2 h-4 w-4" /> Registrar</Button>
             </div>
           </div>
         )}
 
         {view === 'options' && (
             <div className="w-full max-w-md space-y-4">
-                <div className="flex justify-center">
-                    {capturedImage && (
-                        <Image src={capturedImage} alt="Foto capturada" width={160} height={120} className="rounded-lg shadow-lg" />
-                    )}
-                </div>
+                <div className="flex justify-center">{capturedImage && (<Image src={capturedImage} alt="Foto capturada" width={160} height={120} className="rounded-lg shadow-lg" />)}</div>
                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    {isProcessing ? (
-                        <Button disabled className="w-full sm:col-span-2">
-                          <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Processando...
-                        </Button>
-                    ) : (
-                        nextActions.map(({ action, label, icon: Icon }) => (
-                            <Button key={action} onClick={() => handleAction(action)} className="w-full">
-                                <Icon className="mr-2 h-4 w-4" /> {label}
-                            </Button>
-                        ))
-                    )}
+                    {isProcessing ? (<Button disabled className="w-full sm:col-span-2"><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Processando...</Button>) : (nextActions.map(({ action, label, icon: Icon }) => (<Button key={action} onClick={() => handleAction(action)} className="w-full"><Icon className="mr-2 h-4 w-4" /> {label}</Button>)))}
                 </div>
-                {!isProcessing && nextActions.length === 0 && (
-                    <p className="text-muted-foreground text-center p-2">Jornada finalizada por hoje.</p>
-                )}
+                {!isProcessing && nextActions.length === 0 && (<p className="text-muted-foreground text-center p-2">Jornada finalizada por hoje.</p>)}
                  <Button variant="link" onClick={reset} disabled={isProcessing}>Voltar e tirar outra foto</Button>
             </div>
         )}
@@ -309,3 +327,5 @@ export function ClockWidget({ user, timeLogs }: ClockWidgetProps) {
     </GlassCard>
   );
 }
+
+export default ClockWidget;

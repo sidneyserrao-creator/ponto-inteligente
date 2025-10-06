@@ -1,7 +1,7 @@
 
 import { initializeApp, getApps, getApp, type FirebaseApp } from "firebase/app";
 import { getAuth, type Auth } from "firebase/auth";
-import { getFirestore, type Firestore } from "firebase/firestore";
+import { getFirestore, type Firestore, enableIndexedDbPersistence } from "firebase/firestore";
 import { getStorage, type FirebaseStorage } from "firebase/storage";
 
 const firebaseConfig = {
@@ -18,5 +18,16 @@ const app: FirebaseApp = !getApps().length ? initializeApp(firebaseConfig) : get
 const auth: Auth = getAuth(app);
 const db: Firestore = getFirestore(app);
 const storage: FirebaseStorage = getStorage(app);
+
+// Habilita a persistência offline do Firestore
+enableIndexedDbPersistence(db).catch((err) => {
+  if (err.code == 'failed-precondition') {
+    // Múltiplas abas abertas podem causar este erro.
+    console.warn('A persistência do Firestore falhou, possivelmente devido a múltiplas abas abertas.');
+  } else if (err.code == 'unimplemented') {
+    // Navegador sem suporte.
+    console.warn('O navegador atual não suporta a persistência offline do Firestore.');
+  }
+});
 
 export { app, auth, db, storage };

@@ -54,7 +54,6 @@ export async function sendNotification(userId: string, notification: { title: st
 
     // Enviar a mensagem
     const response = await messaging.send(message);
-    console.log('Notificação enviada com sucesso:', response);
 
   } catch (error) {
     if (error instanceof Error) {

@@ -1,21 +1,21 @@
 {
-  "name": "BIT SEGURANÇA",
-  "short_name": "BIT SEGURANÇA",
+  "name": "BIT Segurança",
+  "short_name": "BITSegurança",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#041b46",
+  "theme_color": "#0a2a73",
+  "orientation": "portrait",
   "icons": [
     {
-      "src": "/web-app-manifest-192x192.png",
+      "src": "/icons/icon-192x192.png",
       "sizes": "192x192",
-      "type": "image/png",
-      "purpose": "maskable"
+      "type": "image/png"
     },
     {
-      "src": "/web-app-manifest-512x512.png",
+      "src": "/icons/icon-512x512.png",
       "sizes": "512x512",
-      "type": "image/png",
-      "purpose": "maskable"
+      "type": "image/png"
     }
-  ],
-  "theme_color": "#0e1273",
-  "background_color": "#185eb0",
-  "display": "standalone"
+  ]
 }

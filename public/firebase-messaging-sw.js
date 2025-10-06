@@ -1,7 +1,7 @@
 
 // Importa os scripts do Firebase
-importScripts('https://www.gstatic.com/firebasejs/9.15.0/firebase-app-compat.js');
-importScripts('https://www.gstatic.com/firebasejs/9.15.0/firebase-messaging-compat.js');
+importScripts('https://www.gstatic.com/firebasejs/10.7.0/firebase-app-compat.js');
+importScripts('https://www.gstatic.com/firebasejs/10.7.0/firebase-messaging-compat.js');
 
 // Obtém a configuração do Firebase a partir dos parâmetros da URL
 const urlParams = new URL(location).searchParams;
@@ -22,16 +22,13 @@ if (firebaseConfig.apiKey) {
   const messaging = firebase.messaging();
 
   messaging.onBackgroundMessage((payload) => {
-    console.log(
-      '[firebase-messaging-sw.js] Mensagem em segundo plano recebida: ',
-      payload
-    );
+    // O console.log foi removido para evitar a mensagem [object Object] no log do servidor.
     
     // Personaliza a notificação aqui
     const notificationTitle = payload.notification?.title || 'Novo Alerta';
     const notificationOptions = {
       body: payload.notification?.body || 'Você tem uma nova mensagem.',
-      icon: '/icon1.png', // Certifique-se de que este ícone exista na pasta public
+      icon: '/web-app-manifest-192x192.png', // Caminho do ícone corrigido
     };
 
     self.registration.showNotification(notificationTitle, notificationOptions);
