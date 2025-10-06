@@ -6,7 +6,6 @@ import { logout } from '@/lib/actions';
 import { LogOut } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import type { User, Role } from '@/lib/types';
-import Image from 'next/image';
 
 
 const getRoleName = (role: Role) => {
@@ -49,13 +48,6 @@ export default async function DashboardLayout({
         <header className="sticky top-0 z-40 w-full border-b bg-background/80 backdrop-blur-sm">
             <div className="container mx-auto flex h-16 items-center justify-between p-4">
                 <div className="flex items-center gap-6">
-                    <Image
-                      src="/logo.png"
-                      alt="Logo Bit Segurança"
-                      width={40}
-                      height={40}
-                      className="bg-transparent"
-                    />
                     <UserProfile user={user} />
                 </div>
                 <form action={logout}>
