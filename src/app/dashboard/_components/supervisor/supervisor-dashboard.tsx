@@ -20,7 +20,7 @@ export function SupervisorDashboard({ user, announcements, teamLogs, supervisedP
         <TeamTimeLogs teamLogs={teamLogs} />
       </div>
       <div className="space-y-6">
-        <BreakTimeManager supervisedPosts={supervisedPosts} teamMembers={teamMembers} />
+        <BreakTimeManager />
       </div>
     </div>
   );

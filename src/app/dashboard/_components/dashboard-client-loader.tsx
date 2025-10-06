@@ -1,32 +1,29 @@
+
 'use client';
 
-import type { User, TimeLog, Payslip, Signature, Announcement, Occurrence, WorkPost, WorkShift } from '@/lib/types';
-import { AdminDashboard } from './admin-dashboard';
-import { CollaboratorDashboard } from './collaborator-dashboard';
+import type { User, TimeLog, Payslip, Signature, Announcement, Occurrence, WorkPost, WorkShift, DailyBreakSchedule } from '@/lib/types';
+import AdminDashboardClient from './admin-dashboard-client';
+import CollaboratorDashboardClient from './collaborator-dashboard-client';
 import { SupervisorDashboard } from './supervisor/supervisor-dashboard';
 import { useEffect, useState } from 'react';
+import DashboardLoader from './dashboard-loader';
 
-// Consolidate all possible props for any dashboard type
 interface DashboardClientLoaderProps {
   user: User;
-  // Collaborator specific
+  announcements?: Announcement[];
   timeLogs?: TimeLog[];
   payslips?: Payslip[];
   signature?: Signature | null;
-  // Supervisor specific
   teamLogs?: (User & { timeLogs: TimeLog[] })[];
   supervisedPosts?: WorkPost[];
   teamMembers?: User[];
-  // Admin specific
   allUsers?: User[];
   workPosts?: WorkPost[];
   workShifts?: WorkShift[];
   allTimeLogs?: TimeLog[];
   signatureStatus?: Record<string, Signature | null>;
   occurrences?: Occurrence[];
-  // Common
-  announcements?: Announcement[];
-
+  breakSchedule?: DailyBreakSchedule | null; 
 }
 
 const DashboardClientLoader = (props: DashboardClientLoaderProps) => {
@@ -37,20 +34,19 @@ const DashboardClientLoader = (props: DashboardClientLoaderProps) => {
   }, []);
 
   if (!isClient) {
-    // Render nothing on the server to avoid hydration mismatch
-    return null;
+    return <DashboardLoader />;
   }
   
-  const { user, ...rest } = props;
+  const { user } = props;
 
   if (!user || !user.role) {
-    return <div>Carregando...</div>;
+    return <DashboardLoader />;
   }
 
   switch (user.role) {
     case 'admin':
       return (
-        <AdminDashboard
+        <AdminDashboardClient
           user={user}
           announcements={props.announcements!}
           allUsers={props.allUsers!}
@@ -73,12 +69,13 @@ const DashboardClientLoader = (props: DashboardClientLoaderProps) => {
         );
     case 'collaborator':
       return (
-        <CollaboratorDashboard
+        <CollaboratorDashboardClient
           user={user}
           announcements={props.announcements!}
           timeLogs={props.timeLogs!}
           payslips={props.payslips!}
-          signature={props.signature || null} 
+          signature={props.signature || null}
+          breakSchedule={props.breakSchedule || null}
         />
       );
     default:
