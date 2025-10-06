@@ -3,19 +3,31 @@
 
 import { Card, CardHeader, CardContent } from '@/components/ui/card';
 import { Loader2 } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, Suspense } from 'react'; // Importa Suspense
+import dynamic from 'next/dynamic'; // Importa dynamic
 import { getAuth } from 'firebase/auth';
 import { db } from '@/lib/firebase';
 import { doc, getDoc } from 'firebase/firestore';
-import type { User, TimeLog, Payslip } from '@/lib/types'; // Removido 'Signature'
-import ClockWidget from '../_components/collaborator/clock-widget';
+import type { User, TimeLog, Payslip } from '@/lib/types';
 import MyPayslips from '../_components/collaborator/my-payslips';
-// Import de CollaboratorSignedTimeSheets foi removido.
+
+// --- Carregamento Dinâmico do ClockWidget ---
+const ClockWidget = dynamic(() => import('../_components/collaborator/clock-widget'), {
+  ssr: false, // Essencial para componentes que usam APIs de navegador
+  loading: () => (
+    <Card>
+      <CardHeader>Registro de Ponto</CardHeader>
+      <CardContent className="flex items-center justify-center h-48">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </CardContent>
+    </Card>
+  ),
+});
+// ----------------------------------------
 
 export default function CollaboratorDashboardPage() {
   const [userData, setUserData] = useState<User | null>(null);
   const [timeLogs, setTimeLogs] = useState<TimeLog[]>([]);
-  // O estado 'signature' foi removido.
   const [payslips, setPayslips] = useState<Payslip[]>([]);
   const [loading, setLoading] = useState(true);
   const auth = getAuth();
@@ -33,7 +45,6 @@ export default function CollaboratorDashboardPage() {
         if (userDoc.exists()) {
             const userData = userDoc.data() as User;
             setUserData(userData);
-            // Simulação de dados. A lógica de buscar a assinatura foi removida.
         }
       } catch (error) {
         console.error('Erro ao carregar dados do colaborador:', error);
@@ -65,7 +76,16 @@ export default function CollaboratorDashboardPage() {
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 gap-6 p-6">
       <div className="md:col-span-2">
-        <ClockWidget user={userData} timeLogs={timeLogs} />
+        <Suspense fallback={
+          <Card>
+            <CardHeader>Registro de Ponto</CardHeader>
+            <CardContent className="flex items-center justify-center h-48">
+              <Loader2 className="h-8 w-8 animate-spin text-primary" />
+            </CardContent>
+          </Card>
+        }>
+            <ClockWidget user={userData} timeLogs={timeLogs} />
+        </Suspense>
       </div>
       <div className="md:col-span-1">
         <MyPayslips user={userData} payslips={payslips} />

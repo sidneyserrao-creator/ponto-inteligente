@@ -2,19 +2,23 @@
 'use client';
 
 import { useState } from 'react';
+import dynamic from 'next/dynamic';
 import { AnnouncementManager } from './admin/announcement-manager';
 import { CollaboratorManager } from './admin/collaborator-manager';
 import { DocumentManager } from './admin/document-manager';
 import { IndividualScheduleManager } from './admin/individual-schedule-manager';
 import { OccurrenceManager } from './admin/occurrence-manager';
 import { TimeLogHistory } from './admin/time-log-history';
-import { WorkPostManager } from './admin/work-post-manager';
-import { Home, Megaphone, Users, FileText, Calendar, History, MapPin } from 'lucide-react'; // Ícone FileSignature removido
+import { Home, Megaphone, Users, FileText, Calendar, History, MapPin, Loader2 } from 'lucide-react'; 
 import type { User, Announcement, WorkPost, WorkShift, TimeLog, Signature, Occurrence } from '@/lib/types';
-// Import de SignedTimeSheets foi removido.
 import { WorkShiftManager } from './admin/work-shift-manager';
 
-// Metadados para as abas (aba 'pontos' removida)
+// Carregamento dinâmico para o WorkPostManager para evitar erros de SSR
+const WorkPostManager = dynamic(() => import('./admin/work-post-manager').then(mod => mod.WorkPostManager), {
+  ssr: false,
+  loading: () => <div className="flex items-center justify-center p-4"><Loader2 className="h-6 w-6 animate-spin" /> Carregando gerenciador de postos...</div>
+});
+
 const tabs = {
   inicio: { label: 'Início', icon: Home },
   comunicados: { label: 'Comunicados', icon: Megaphone },
@@ -22,7 +26,6 @@ const tabs = {
   documentos: { label: 'Documentos', icon: FileText },
   escalas: { label: 'Escalas de Turno', icon: Calendar },
   escalas_individuais: { label: 'Escalas Individuais', icon: Calendar },
-  // pontos: { label: 'Pontos Assinados', icon: FileSignature }, // Aba desativada
   ocorrencias: { label: 'Ocorrências', icon: History },
   postos: { label: 'Postos de Trabalho', icon: MapPin },
 };
@@ -36,7 +39,7 @@ export default function AdminDashboardClient(props: {
   workPosts: WorkPost[];
   workShifts: WorkShift[];
   allTimeLogs: TimeLog[];
-  signatureStatus: Record<string, Signature | null>; // Prop mantida para evitar quebrar o componente pai, mas não é usada aqui.
+  signatureStatus: Record<string, Signature | null>; 
   occurrences: Occurrence[];
 }) {
   const [activeTab, setActiveTab] = useState<TabKey>('inicio');
@@ -69,7 +72,6 @@ export default function AdminDashboardClient(props: {
         {activeTab === 'documentos' && <DocumentManager collaborators={props.allUsers} />}
         {activeTab === 'escalas' && <WorkShiftManager initialWorkShifts={props.workShifts}/>}
         {activeTab === 'escalas_individuais' && <IndividualScheduleManager allUsers={props.allUsers} workPosts={props.workPosts} />}
-        {/* Renderização do SignedTimeSheets foi removida. */}
         {activeTab === 'ocorrencias' && <OccurrenceManager allUsers={props.allUsers} initialOccurrences={props.occurrences} />}
         {activeTab === 'postos' && <WorkPostManager initialWorkPosts={props.workPosts} allUsers={props.allUsers} />}
       </main>

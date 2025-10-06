@@ -1,15 +1,29 @@
 import { Suspense } from 'react';
+import dynamic from 'next/dynamic'; // Importa o 'dynamic'
 import { getCurrentUser } from '@/lib/auth';
 import { redirect } from 'next/navigation';
 import DashboardLoader from './_components/dashboard-loader';
-
-// Importa os dashboards dinamicamente para code-splitting
-import AdminDashboard from './_components/admin-dashboard';
-import SupervisorDashboard from './_components/supervisor-dashboard';
-import CollaboratorDashboard from './_components/collaborator-dashboard';
-import FCMInitializer from './_components/FCMInitializer'; // Importa o inicializador FCM
-import { getCollaboratorBreakSchedule } from '@/lib/data'; // Importa a nova função
+import FCMInitializer from './_components/FCMInitializer';
+import { getCollaboratorBreakSchedule } from '@/lib/data';
 import type { User, DailyBreakSchedule } from '@/lib/types';
+import { Loader2 } from 'lucide-react';
+
+// --- Carregamento Dinâmico dos Dashboards ---
+const AdminDashboard = dynamic(() => import('./_components/admin-dashboard'), {
+  ssr: false,
+  loading: () => <DashboardLoader />,
+});
+
+const SupervisorDashboard = dynamic(() => import('./_components/supervisor-dashboard'), {
+  ssr: false,
+  loading: () => <DashboardLoader />,
+});
+
+const CollaboratorDashboard = dynamic(() => import('./_components/collaborator-dashboard'), {
+    ssr: false, // O colaborador também pode ter componentes client-side
+    loading: () => <DashboardLoader />,
+});
+// ------------------------------------------
 
 function DashboardHeader() {
   return (
@@ -26,7 +40,6 @@ function DashboardHeader() {
   );
 }
 
-// Atualiza o RoleBasedDashboard para passar o breakSchedule apenas quando necessário
 function RoleBasedDashboard({ user, breakSchedule }: { user: User; breakSchedule: DailyBreakSchedule | null }) {
   switch (user.role) {
     case 'admin':
@@ -34,10 +47,8 @@ function RoleBasedDashboard({ user, breakSchedule }: { user: User; breakSchedule
     case 'supervisor':
       return <SupervisorDashboard user={user} />;
     case 'collaborator':
-      // Passa a prop apenas para o CollaboratorDashboard
       return <CollaboratorDashboard user={user} breakSchedule={breakSchedule} />;
     default:
-      // Fallback para um estado de erro ou dashboard padrão
       return <div>Função de usuário desconhecida.</div>;
   }
 }
@@ -56,7 +67,8 @@ export default async function DashboardPage() {
 
   return (
     <div className="space-y-6">
-      <FCMInitializer user={user} />
+      {/* O FCMInitializer já é client-side, então está ok */}
+      <FCMInitializer user={user} /> 
       <DashboardHeader />
       <Suspense fallback={<DashboardLoader />}>
         <RoleBasedDashboard user={user} breakSchedule={breakSchedule} />
