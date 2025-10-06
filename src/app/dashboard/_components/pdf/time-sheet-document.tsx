@@ -153,7 +153,7 @@ export function TimeSheetDocument({ user, logs, signature }: TimeSheetDocumentPr
         <View style={styles.header}>
           <Image
             style={styles.logo}
-            src="https://firebasestorage.googleapis.com/v0/b/studio-2096480918-e97c7.appspot.com/o/logo.png?alt=media"
+            src="/logo.png"
           />
           <View style={styles.headerText}>
             <Text style={styles.companyName}>Bit Segurança</Text>
